@@ -41,6 +41,9 @@ jobs:
       - name: Test
         run: npm run test:run
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest

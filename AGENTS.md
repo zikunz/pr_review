@@ -183,7 +183,7 @@ These are non-negotiable. Any code suggestion or generated commit that violates 
 
 Allowed types. `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`, `style`.
 
-Common scopes. `webhook`, `github`, `openai`, `router`, `sensor`, `eval`, `infra`.
+Common scopes. `webhook`, `github`, `openai`, `lib`, `server`, `ci`, `docs`. `router`, `sensor`, and `eval` become valid scopes once their v0.2 features land.
 
 ---
 
