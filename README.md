@@ -61,10 +61,10 @@ To run end to end against a real PR, register a GitHub App, point its webhook at
 ## Tech stack
 
 - Runtime. Node 24 LTS with TypeScript strict
-- Framework. Hono via `@hono/node-server`. Hono was designed for Cloudflare Workers first, so the Workers migration in v0.4+ is a swap of the entry file and the trace sink, not a rewrite.
+- Framework. Hono via `@hono/node-server`. Hono was designed for Cloudflare Workers first, so the v0.4+ Workers migration is a swap of four files (entry, trace sink, dotenv loader, HMAC verifier), not a rewrite.
 - LLM inference. OpenAI API. Single `gpt-5.3-codex` call in v0.1, three-tier cascade in v0.2.
 - Hosting. Railway for v0.1 through v0.3
-- Storage. In process map for idempotency in v0.1. SQLite or Postgres in later versions.
+- Storage. In-process map for idempotency in v0.1. SQLite or Postgres in later versions.
 - Lint and format. Biome 2.x
 - Test. Vitest 4.x
 - CI. GitHub Actions runs typecheck, lint, tests, and a gitleaks secret scan on every push to `main` and every pull request.
@@ -77,16 +77,16 @@ To run end to end against a real PR, register a GitHub App, point its webhook at
 | GitHub App authentication with installation token cache | Shipped (v0.1) |
 | Fetch PR head, files, and unified diff with pagination | Shipped (v0.1) |
 | Single model review with Zod structured output | Shipped (v0.1) |
-| Inline comments via the GitHub Reviews API line plus side fields | Shipped (v0.1) |
+| Inline comments via the GitHub Reviews API `line` and `side` fields | Shipped (v0.1) |
 | Idempotency store keyed on `X-GitHub-Delivery` with 24h TTL | Shipped (v0.1) |
-| Per review cost cap with usage telemetry | Shipped (v0.1) |
+| Per-review cost cap with usage telemetry | Shipped (v0.1) |
 | JSON Lines trace logging | Shipped (v0.1) |
 | `@<bot-name>` mention re-trigger | Shipped (v0.1) |
 | Graceful shutdown on SIGTERM and SIGINT | Shipped (v0.1) |
-| Three tier cascade routing | Planned (v0.2) |
+| Three-tier cascade routing | Planned (v0.2) |
 | Agentic tool use (context fetch, library docs, CI logs) | Planned (v0.2) |
 | Persona system with `.cascade.yml` | Planned (v0.2) |
-| Tool based verification with calibrated confidence | Planned (v0.3) |
+| Tool-based verification with calibrated confidence | Planned (v0.3) |
 | LoRA distillation pipeline | Future (v0.4+) |
 | Cloudflare Workers migration | Future (v0.4+) |
 

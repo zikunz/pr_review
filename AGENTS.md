@@ -6,9 +6,9 @@ Project guidance for coding agents. Follows the [agents.md](https://agents.md/) 
 
 ## Project at a glance
 
-**PR Cascade** is a GitHub Pull Request review agent. It receives webhook events, runs a single model in v0.1 with a three tier cascade arriving in v0.2, and posts structured review comments back to GitHub.
+**PR Cascade** is a GitHub Pull Request review agent. It receives webhook events, runs a single model in v0.1 with a three-tier cascade arriving in v0.2, and posts structured review comments back to GitHub.
 
-The project optimizes for the cost quality Pareto frontier of LLM application engineering. A single frontier model on every request is often overkill for routine code review. Thoughtful routing across tiers preserves frontier quality on the cases that need it while keeping the average review cheap. The v0.2 cascade is the place that thesis is tested.
+The project targets a better cost-quality trade-off than single-model review. A single frontier model on every request is often overkill for routine code review. Routing routine reviews to cheaper tiers preserves frontier quality on the cases that need it while keeping the average review cheap. The v0.2 cascade is where that thesis is tested.
 
 ---
 
@@ -49,7 +49,7 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 | Runtime | Node 24 LTS |
 | Framework | Hono via `@hono/node-server`. Hono is portable to Cloudflare Workers, though only the Node adapter is wired up today. |
 | Hosting | Railway for v0.1 through v0.3 |
-| Storage | In memory map for v0.1 idempotency. Database in later versions. |
+| Storage | In-memory map for v0.1 idempotency. Database in later versions. |
 | LLM inference | OpenAI API. `gpt-5.3-codex` in v0.1. v0.2 cascade routes across `gpt-5.4-mini` (tier 1), `gpt-5.3-codex` (tier 2), and `gpt-5.5` (tier 3 advisor). |
 | Observability | Local trace file for v0.1. Langfuse later. |
 | Lint and format | Biome 2.x |
@@ -66,7 +66,7 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 - `strict: true` always. No `any` without a comment justifying why.
 - Prefer types over interfaces for object shapes unless declaration merging is needed.
 - Discriminated unions for sum types. Use `kind` or `type` as discriminator.
-- Path alias `@/*` maps to `src/*`. Use absolute imports from `@/` for cross-directory.
+- Path alias `@/*` maps to `src/*`. Use absolute imports from `@/` for cross-directory references.
 
 ### Naming
 
@@ -161,8 +161,8 @@ Future versions add `eval/` for Promptfoo fixtures, `infra/` for database schema
 
 These are non-negotiable. Any code suggestion or generated commit that violates these must be flagged and corrected.
 
-1. **No secrets in code or commits ever**. Even placeholder fake API keys should look syntactically obviously fake (e.g., `your-api-key-here`).
-2. **HMAC and signature comparison must be constant time**. Use `node:crypto` `timingSafeEqual` on Buffer inputs, or the Web Crypto `crypto.subtle` equivalent when running on Workers. Never `===`.
+1. **No secrets in code or commits ever**. Even placeholder fake API keys should look obviously fake on inspection (for example, `your-api-key-here`).
+2. **HMAC and signature comparison must be constant-time**. Use `node:crypto` `timingSafeEqual` on equal-length Buffer inputs, or the Web Crypto `crypto.subtle` equivalent when running on Workers. Never `===`.
 3. **No real user data in test fixtures**. Synthetic only.
 4. **Conventional Commits for all commit messages**. See ROADMAP.md for cadence and message structure.
 5. **No `console.log` of prompts, API responses, or webhook bodies**. Use structured logging via observability layer.
