@@ -20,4 +20,3 @@
 - [ ] No secrets committed (run `git diff` and check)
 - [ ] Tests added or updated where applicable
 - [ ] Documentation updated where applicable
-- [ ] Build-in-public worthy change (will mention in next post) ? Yes / No

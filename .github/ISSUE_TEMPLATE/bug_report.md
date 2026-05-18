@@ -24,7 +24,7 @@ labels: bug
 - pr-cascade version or commit:
 - Node version:
 - OS:
-- Where running (local dev, Cloudflare Worker, CI):
+- Where running (local dev, Railway, other):
 
 ## Additional context
 

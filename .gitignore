@@ -13,9 +13,6 @@ secrets/
 service-account*.json
 gha-credentials*.json
 private/
-.wrangler/
-wrangler.toml.local
-wrangler.local.toml
 
 # GitHub App private keys (specifically)
 *github-app*.pem
@@ -23,7 +20,6 @@ wrangler.local.toml
 app.private-key.pem
 
 # API key files
-.anthropic_key
 .openai_key
 api-keys.txt
 
