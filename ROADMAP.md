@@ -16,8 +16,6 @@ Three ideas drive the design.
 2. Cost discipline. Routine reviews stay on small open source models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
 3. Transparency. Prompts, eval methodology, and trace data formats are open so anyone can reproduce or critique the approach.
 
-The bot is permanently free. The code, prompts, and trace format are public.
-
 ## Non-goals
 
 This project explicitly does not do the following.
@@ -45,9 +43,9 @@ This project explicitly does not do the following.
 | Test | Vitest 4.x | |
 | CI | GitHub Actions | Typecheck, lint, test, gitleaks secret scan |
 | Observability (v0.2+) | Langfuse cloud free tier initially | Self host for v0.3 |
-| Package manager | npm | pnpm 11 strict build approval blocks CI |
+| Package manager | npm | |
 
-Migration to Cloudflare Workers happens in v0.4 once Cloudflare for Startups credits land. Architecture is designed to allow this with minimal changes (Hono is universal, business logic does not depend on Node specifics).
+Cloudflare Workers is an intentional v0.4 target. Hono itself was designed for Workers first, and the business logic in this repository does not depend on Node specific APIs outside of `src/server.ts` and `src/lib/trace.ts`. The migration is a swap of the entry file and the trace sink, not a rewrite.
 
 ## Architecture (v0.1)
 
@@ -159,17 +157,17 @@ Not committed. Listed for direction.
 
 ## Personas and config
 
-The default persona for v0.1 is senior software engineer (see `src/openai/prompt.ts` for the exact prompt text).
+The default persona for v0.1 is senior software engineer. The full prompt lives in `src/openai/prompt.ts`. The summary below mirrors what the prompt enforces.
 
 ```
 Focus     bugs, security, performance, API misuse, concurrency
 Ignore    style, naming, subjective architecture choices
 Tone      direct and constructive
-Findings  prompt requests at most 5 per review, schema does not yet enforce
-Threshold model declared confidence is captured today, post side threshold lands in v0.2
+Findings  schema caps the array at five, prompt asks the model to prefer quality over quantity
+Threshold the model assigns a confidence per finding; a post side threshold lands in v0.2
 ```
 
-Starting v0.2 (planned), users override via `.cascade.yml` in repo root.
+Starting v0.2 (planned), users override via `.cascade.yml` in the repo root.
 
 ```yaml
 preset: production
@@ -244,10 +242,10 @@ Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascad
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
 | OpenAI rate limit hit | Low | Exponential backoff. Tier 5 limits far exceed projected load |
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per repo and per day caps planned in v0.2. |
-| Review post fails after LLM cost incurred | Medium | Log finding to retry queue. Idempotent retry by storing parsed output |
+| Review post fails after LLM cost incurred | Medium | Cost and parsed output are written to the trace before the post call, so a failed post is diagnosable from local logs. Retry queue planned in v0.2. |
 | Force push leaves stale inline comments | Low | GitHub auto marks them outdated. No action required |
-| Persona config syntax error | Low | Strict Zod schema. Fall back to default and notify in review body |
-| Spam findings on docs only or generated files | Medium | File path filter in default persona. Ignore lock files and generated outputs |
+| Persona config syntax error | Low | Strict Zod schema (planned with the v0.2 persona feature). Fall back to default and notify in review body. |
+| Spam findings on docs only or generated files | Medium | Path filter in default persona (planned with the v0.2 persona feature). The current v0.1 prompt asks the model to skip trivial findings. |
 
 ## Success metrics
 
@@ -292,15 +290,15 @@ The author must complete the following manual setup before the bot operates.
 2. Connect GitHub account
 3. Create new service from the pr_review repository main branch
 4. Set environment variables from `.env.example`
-5. Confirm the auto generated deployment URL (e.g., pr-cascade.up.railway.app)
+5. Confirm the auto generated deployment URL (Railway returns something like `pr-cascade-production.up.railway.app`)
 6. Update the GitHub App webhook URL to match
 
 ### OpenAI
 
-1. Confirm Tier 5 access (already verified)
-2. Set monthly organization budget hard cap to $25
-3. Generate an API key. Project keys with a model allowlist are recommended over org keys
-4. Store as `OPENAI_API_KEY`
+1. Confirm the OpenAI account has sufficient rate and spend limits for the expected webhook volume.
+2. Set a monthly organization budget hard cap appropriate for the projected load. The per review cap in this repo defaults to thirty cents; the org level cap is the second line of defense.
+3. Generate an API key. Project keys with a model allowlist are recommended over organization keys.
+4. Store the key as `OPENAI_API_KEY`.
 
 ## Glossary
 
@@ -324,4 +322,4 @@ The author must complete the following manual setup before the bot operates.
 
 **Tool based verification**. Pattern where LLM proposed findings are checked by deterministic tools (AST parser, symbol resolver, test coverage check) before being shown to the user.
 
-**Tree-sitter**. Parser library with grammars covering 100+ languages, producing concrete syntax trees. The bot uses it for AST inspection in v0.3.
+**Tree-sitter**. Parser library with grammars for dozens of languages, producing concrete syntax trees. The bot uses it for AST inspection in v0.3.

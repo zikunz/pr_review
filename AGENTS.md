@@ -6,9 +6,9 @@ Project guidance for coding agents. Follows the [agents.md](https://agents.md/) 
 
 ## Project at a glance
 
-**PR Cascade** is a GitHub Pull Request review agent. It receives webhook events, runs a four-tier model cascade (small open-source models for routine reviews, frontier closed models as advisor for hard cases), and posts structured review comments back to GitHub.
+**PR Cascade** is a GitHub Pull Request review agent. It receives webhook events, runs a single model in v0.1 with a three tier cascade arriving in v0.2, and posts structured review comments back to GitHub.
 
-The project optimizes for the cost-quality Pareto frontier of LLM application engineering. Most production LLM apps overpay by 10x or more by using a single frontier model for every request. PR Cascade demonstrates that thoughtful routing across tiers can match frontier quality at a fraction of the cost.
+The project optimizes for the cost quality Pareto frontier of LLM application engineering. A single frontier model on every request is often overkill for routine code review. Thoughtful routing across tiers preserves frontier quality on the cases that need it while keeping the average review cheap. The v0.2 cascade is the place that thesis is tested.
 
 ---
 
@@ -47,10 +47,10 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 |---|---|
 | Language | TypeScript strict |
 | Runtime | Node 24 LTS |
-| Framework | Hono with `@hono/node-server` (portable to Cloudflare Workers in a later version) |
+| Framework | Hono via `@hono/node-server`. Hono is portable to Cloudflare Workers, though only the Node adapter is wired up today. |
 | Hosting | Railway for v0.1 through v0.3 |
 | Storage | In memory map for v0.1 idempotency. Database in later versions. |
-| LLM inference | OpenAI API (`gpt-5.3-codex` for v0.1, cascade across `gpt-5.4-mini` and `gpt-5.5` in v0.2) |
+| LLM inference | OpenAI API. `gpt-5.3-codex` in v0.1. v0.2 cascade routes across `gpt-5.4-mini` (tier 1), `gpt-5.3-codex` (tier 2), and `gpt-5.5` (tier 3 advisor). |
 | Observability | Local trace file for v0.1. Langfuse later. |
 | Lint and format | Biome 2.x |
 | Test | Vitest 4.x |
@@ -75,7 +75,7 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 - Types and classes. PascalCase inside files.
 - Functions and variables. camelCase.
 - Constants. UPPER_SNAKE_CASE only for true compile-time constants.
-- Database tables and columns. snake_case (D1 / SQL convention).
+- Database tables and columns. snake_case (SQL convention).
 
 ### Error handling
 
@@ -183,16 +183,17 @@ These are non-negotiable. Any code suggestion or generated commit that violates 
 
 Allowed types. `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`, `style`.
 
-Common scopes. `webhook`, `router`, `sensor`, `eval`, `frontend`, `infra`.
+Common scopes. `webhook`, `github`, `openai`, `router`, `sensor`, `eval`, `infra`.
 
 ---
 
 ## What to do when you encounter the unfamiliar
 
-- OpenAI SDK and structured outputs. Verify at platform.openai.com/docs.
-- GitHub App, webhook payloads, and Reviews API semantics. Verify at docs.github.com.
-- Hono request and response API. Verify at hono.dev.
-- When in doubt, link to the doc URL in the PR description so the human maintainer can verify.
+- OpenAI SDK behavior, structured outputs, function calling, prompt caching. Verify at platform.openai.com/docs and the `openai` npm `helpers.md`.
+- GitHub App authentication, webhook payload shapes, Reviews API line and side semantics. Verify at docs.github.com.
+- Hono request, response, and adapter APIs. Verify at hono.dev.
+- Node.js HTTP server lifecycle, signal handling. Verify at nodejs.org/api.
+- When in doubt, link the doc URL in the PR description so the human maintainer can verify.
 
 ---
 
@@ -208,4 +209,4 @@ Common scopes. `webhook`, `router`, `sensor`, `eval`, `frontend`, `infra`.
 
 ## How to communicate uncertainty
 
-If you are not sure about something (a Cloudflare API behavior, a Workers AI model availability, a GitHub webhook field), write the code with a `// TODO(verify):` comment and a doc URL. Do not invent behavior. Do not assume.
+If you are not sure about something (an OpenAI API behavior, a GitHub webhook payload field, a Hono adapter detail), write the code with a `// TODO(verify):` comment and a doc URL. Do not invent behavior. Do not assume.
