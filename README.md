@@ -1,94 +1,74 @@
 # PR Cascade
 
-> Production-grade GitHub Pull Request review agent with cost-aware model cascade routing.
+> A GitHub Pull Request review agent that posts inline comments, routes across model tiers for cost efficiency, and verifies LLM findings against the actual diff before posting.
 
-[![Status](https://img.shields.io/badge/status-active%20development-yellow)](https://github.com/zikunz/pr_review)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
 ## What this is
 
-PR Cascade automatically reviews GitHub Pull Requests using a four-tier model cascade. Routine PRs route to small open-source models for cost efficiency. Complex changes escalate to frontier closed models only when needed. Every output passes through validation sensors before being posted.
+PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per review cost cap. Triggers cover the standard PR lifecycle (open, push, reopen) plus an explicit `@bot review` mention for manual re-runs.
 
-The goal is to demonstrate that **thoughtful routing across a model cascade can match the quality of frontier closed models at a fraction of the cost**.
+Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
 
 ## Architecture (v0.1)
 
 ```
-GitHub PR opened
-      ↓
-Webhook receiver
+GitHub PR event
+        ↓
+POST /github/webhook
    verify HMAC, check idempotency
-      ↓
+        ↓
 Async pipeline
-   fetch PR data → call LLM → validate findings → post review
-      ↓
-GitHub PR Review with inline comments
+   fetch PR data
+   call LLM with structured output
+   filter findings to lines that exist in the diff
+   post Review with inline comments
+   log cost and outcome to local trace file
 ```
-
-Detailed cascade and verification architecture lives in [ROADMAP.md](./ROADMAP.md).
-
-## Current status
-
-Active development. Architecture finalized 2026-05-18. First end-to-end review flow targeted for late May 2026. Public beta opening through CS153 Frontier Systems final project demo June 2026.
-
-Detailed design document at [github.com/zikunz/proposals](https://github.com/zikunz/proposals).
-
-## Build in public
-
-Following along.
-
-- **Code**. This repository.
-- **Twitter**. [@zikunz](https://twitter.com/zikunz)  (replace with actual handle)
-- **Blog**. zikun.dev  (coming soon)
-- **小红书**. (coming soon)
-
-Weekly technical posts cover architecture decisions, fine-tune results, eval findings, and cost-quality trade-offs.
 
 ## Why this exists
 
-Built as a personal exploration project to deeply understand production LLM application engineering. The specific technical contributions of interest:
+Most automated code review tools treat the model as a black box and ship a single hardcoded provider. This project goes the other direction. The routing logic, sensors, prompts, and verification approach are all visible source. The repository doubles as a working tool and a reference for the engineering patterns that separate a demo from a production LLM application.
 
-- Cost-aware cascade routing with confidence-calibrated tier selection
-- Multi-sensor output validation including hallucination detection against real diff content
-- LoRA distillation from a frontier model to a small open-source model with edge inference deployment (v0.4+)
-- Eval flywheel driven by real production traces from GitHub user feedback signals
+Three ideas drive the design.
 
-PR review is the vehicle. The patterns transfer to any production LLM agent.
+1. Verifiability over confidence. Every finding will eventually carry a calibrated confidence score, and the bot verifies each claim against the actual diff before posting it.
+2. Cost discipline. Routine reviews stay on small models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
+3. Transparency. Prompts, eval methodology, and trace formats are open so anyone can reproduce or critique the approach.
 
 ## Tech stack
 
-- **Runtime**. Cloudflare Workers (TypeScript)
-- **Workflow engine**. Cloudflare Workflows
-- **Storage**. Cloudflare D1, R2, KV, Durable Objects, Vectorize
-- **LLM inference**. OpenAI API for v0.1, cascade across multiple OpenAI tiers in v0.2
-- **Frontend**. Next.js on Cloudflare Pages
-- **Observability**. Langfuse
-- **Eval**. Promptfoo
-- **Training**. DigitalOcean GPU droplet with Unsloth for LoRA fine-tuning
+- Runtime. Node 24 with TypeScript strict
+- Framework. Hono (universal across Node and Cloudflare Workers)
+- LLM inference. OpenAI API for v0.1, cascade across multiple tiers in v0.2
+- Hosting. Railway for v0.1 through v0.3
+- Storage. In memory map for idempotency in v0.1. Database in later versions.
+- Lint and format. Biome
+- Test. Vitest
+- CI. GitHub Actions
 
 ## Status board
 
 | Component | Status |
 |---|---|
-| Architecture design | Complete |
-| Repo and project skeleton | In progress (this commit) |
-| GitHub App registration | Pending |
-| Webhook handler | Pending |
-| Cascade router (rule-based) | Pending |
-| Cascade router (classifier-based) | Future |
-| Sensor layer | Pending |
-| End-to-end Workflow | Pending |
-| Frontend dashboard | Pending |
-| LoRA fine-tune pipeline | Future |
-| Eval flywheel | Future |
-| Public beta | Target June 2026 |
+| Webhook receiver with HMAC verification | Shipped (v0.1) |
+| GitHub App authentication | Shipped (v0.1) |
+| Fetch PR data and diff | Shipped (v0.1) |
+| Single model review with structured output | Shipped (v0.1) |
+| Inline comments via Reviews API | Shipped (v0.1) |
+| Idempotency store | Shipped (v0.1) |
+| Per review cost cap | Shipped (v0.1) |
+| Trace logging | Shipped (v0.1) |
+| @mention re-trigger | Shipped (v0.1) |
+| Cascade routing | Planned (v0.2) |
+| Agentic tool use (context fetch, library docs, CI logs) | Planned (v0.2) |
+| Persona system with `.cascade.yml` | Planned (v0.2) |
+| Tool based verification with calibrated confidence | Planned (v0.3) |
+| LoRA distillation pipeline | Future (v0.4+) |
+| Cloudflare Workers migration | Future (v0.4+) |
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-## Acknowledgments
-
-Built during Stanford CS153 Frontier Systems Spring 2026 under instructors Anjney Midha and Michael Abbott. Compute infrastructure provided by Cloudflare for Startups program and DigitalOcean education credits.

@@ -8,13 +8,15 @@ PR Cascade is a GitHub Pull Request review agent that demonstrates production en
 
 ## Why this exists
 
-The author is preparing for LLM application engineer roles in China (primary) and the United States or Singapore (secondary), with target start mid-2027. This project serves three purposes.
+Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade goes the other direction. The routing logic, sensors, prompts, and verification approach are all visible source. The repository doubles as a working tool and a reference for the engineering patterns that separate a demo from a production LLM application.
 
-1. Working artifact for hiring conversations.
-2. Vehicle for learning production LLM engineering patterns by building them.
-3. Open source reference implementation. No commercial code review bot publishes its cascade, verification, or eval methodology.
+Three ideas drive the design.
 
-The bot is permanently free. The code, prompts, eval methodology, and weekly trace analysis are public.
+1. Verifiability over confidence. Every finding carries a calibrated confidence score, and the bot verifies each claim against the actual diff before posting it.
+2. Cost discipline. Routine reviews stay on small open source models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
+3. Transparency. Prompts, eval methodology, and trace data formats are open so anyone can reproduce or critique the approach.
+
+The bot is permanently free. The code, prompts, and trace format are public.
 
 ## Non-goals
 
@@ -78,15 +80,15 @@ async pipeline
 
 ## Version roadmap
 
-Dates are aspirational targets, not commitments. Adjust as reality clarifies.
+Milestones are ordered, not scheduled. Each version is shippable on its own.
 
-| Version | Target window | Theme |
-|---|---|---|
-| v0.1 | Late May 2026 | Single model end to end on Railway |
-| v0.2 | End of June 2026 | Cascade plus agentic tools plus persona system |
-| v0.3 | End of August 2026 | Tool based verification with calibrated confidence |
-| v0.4 | Late autumn 2026 | LoRA distillation and Cloudflare Workers migration |
-| v0.5+ | Open | Adversarial robustness, online learning |
+| Version | Theme |
+|---|---|
+| v0.1 | Single model end to end on Railway |
+| v0.2 | Cascade plus agentic tools plus persona system |
+| v0.3 | Tool based verification with calibrated confidence |
+| v0.4 | LoRA distillation and Cloudflare Workers migration |
+| v0.5+ | Adversarial robustness and online learning |
 
 ### v0.1 scope
 
@@ -141,7 +143,7 @@ New capabilities.
 5. **Confidence aggregation**. Combine LLM stated confidence with verification evidence into final score. Findings below threshold (default 0.5) drop. Findings above 0.85 always post. Mid range tagged for human attention.
 6. **Auto detect persona** when no `.cascade.yml` exists. Signals are README content, CI presence, repo age, sensitive path patterns.
 7. **Per PR override** via PR label (`cascade:lenient`, `cascade:strict`) or description hint.
-8. **Public dashboard** at dashboard.zikun.dev with anonymized eval metrics per repo.
+8. Eval metrics dashboard for review of aggregate accuracy and cost trends across repos. Surface is internal first, public later when the data justifies it.
 
 Target outcome. The v0.1 production traces establish the baseline false positive rate. v0.3 verification aims to cut it by at least half. Precise numbers go in the v0.3 ship blog after measurement, not in this roadmap.
 
@@ -205,7 +207,7 @@ First review in this repo. Defaulting to senior_engineer persona.
 To customize, add .cascade.yml to your repo root with one of these presets.
   prototype | production | mentor | security_audit | concise
 
-Full config reference at docs.zikun.dev/cascade.
+Full config reference will live in the docs directory of this repository.
 ```
 
 Subsequent reviews omit the card.
@@ -230,7 +232,7 @@ Honest classification of project components.
 | Auto detect persona from repo signals | Frontier-ish | Unimplemented in commercial bots |
 | Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major AI safety teams |
 
-Headline for hiring conversations (numbers filled in after v0.3 ships with measured data). "Built production code review agent with tool based verification that materially reduced LLM false positive rate. Open sourced as reference implementation."
+Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascade is a production code review agent with tool based verification that materially reduces LLM false positive rate, open sourced as a reference implementation.
 
 ## Risks and landmines
 
@@ -253,17 +255,12 @@ All metrics are aspirational targets. Verified after the corresponding version s
 
 Quantitative targets.
 
-- v0.1 ships and processes real PRs across more than one repository
+- v0.1 processes real PRs across more than one repository
 - v0.2 installations beyond personal repos
 - v0.3 measurable false positive reduction versus v0.1 baseline on a curated PR benchmark
 - Per review cost stays under the configured cap (default $0.30)
 
-The roadmap deliberately omits star counts, install counts, and other vanity metrics. Concrete numbers go in build in public blog posts after measurement.
-
-Qualitative.
-
-- Build in public cadence held (see below)
-- External reference from at least one credible technical source by end of 2026 (HackerNews, third party blog, podcast)
+The roadmap deliberately omits star counts, install counts, and other vanity metrics. Concrete numbers go in technical writeups after measurement.
 
 ## External dependencies
 
@@ -304,10 +301,6 @@ The author must complete the following manual setup before the bot operates.
 2. Set monthly organization budget hard cap to $25
 3. Generate API key restricted to chat completions scope
 4. Store as `OPENAI_API_KEY`
-
-## Build in public cadence
-
-GitHub commits at least 3 per week. Twitter or X one substantive thread per week. Blog one post per two weeks. Xiaohongshu and Zhihu one post per two weeks (Chinese translation of Twitter or blog).
 
 ## Glossary
 

@@ -47,17 +47,16 @@ npm run deploy
 | Layer | Tool |
 |---|---|
 | Language | TypeScript strict |
-| Runtime | Cloudflare Workers |
-| Workflow | Cloudflare Workflows |
-| Storage | D1 (relational), R2 (blobs), KV (cache), Durable Objects (coordination) |
+| Runtime | Node 24 LTS |
+| Framework | Hono with `@hono/node-server` (portable to Cloudflare Workers in a later version) |
+| Hosting | Railway for v0.1 through v0.3 |
+| Storage | In memory map for v0.1 idempotency. Database in later versions. |
 | LLM inference | OpenAI API (`gpt-5.3-codex` for v0.1, cascade across `gpt-5.4-mini` and `gpt-5.5` in v0.2) |
-| Frontend (Phase 2) | Next.js on Cloudflare Pages |
-| Observability | Langfuse + Sentry |
-| Lint and format | Biome (single tool) |
-| Test | Vitest |
+| Observability | Local trace file for v0.1. Langfuse later. |
+| Lint and format | Biome 2.x |
+| Test | Vitest 4.x |
 | Package manager | npm |
 | CI | GitHub Actions |
-| Deploy | Wrangler |
 
 ---
 
@@ -113,52 +112,49 @@ Biome handles import sorting automatically. Run `npm run format` before commit.
 
 ---
 
-## File and directory structure
+## File and directory structure (current v0.1)
 
 ```
 pr_review/
 ├── src/
-│   ├── index.ts              # Worker entrypoint
-│   ├── webhook.ts            # GitHub webhook receiver
-│   ├── crypto.ts             # HMAC verification
-│   ├── github.ts             # GitHub API client
-│   ├── workflows/
-│   │   └── pr-review.ts      # Main Cloudflare Workflow
-│   ├── cascade/
-│   │   ├── router.ts         # Tier selection
-│   │   ├── tiers.ts          # Tier definitions
-│   │   └── sensors.ts        # Quality sensors
-│   ├── eval/
-│   │   ├── assertions.ts     # Code-based eval
-│   │   └── judge.ts          # LLM-as-judge eval
-│   └── env.ts                # Typed env bindings
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── eval/
-│   ├── promptfooconfig.yaml
-│   └── fixtures/             # synthetic only
-├── infra/
-│   ├── d1-schema.sql
-│   └── migrations/
-├── docs/
-│   ├── ARCHITECTURE.md
-│   └── RUNBOOK.md
+│   ├── server.ts             Node entry, starts Hono on PORT
+│   ├── app.ts                Hono routes for /health and /github/webhook
+│   ├── env.ts                Zod env validation with .env.local loader
+│   ├── lib/
+│   │   ├── idempotency.ts    in memory map with 24h TTL
+│   │   ├── cost.ts           per model pricing and cost cap enforcement
+│   │   └── trace.ts          append JSON lines to traces/<date>.jsonl
+│   ├── github/
+│   │   ├── auth.ts           GitHub App JWT and installation token cache
+│   │   ├── client.ts         REST calls for PR data, files, review post
+│   │   └── diff.ts           parse unified diff for valid comment lines
+│   ├── openai/
+│   │   ├── schema.ts         Zod schema for review output
+│   │   ├── prompt.ts         system prompt and diff formatter
+│   │   └── review.ts         call OpenAI with structured output
+│   └── webhook/
+│       ├── verify.ts         HMAC SHA-256 with constant time compare
+│       └── handler.ts        dispatch by event and run review pipeline
+├── tests/                    Vitest specs, mirror src layout
 ├── .github/
-│   └── workflows/
-│       └── ci.yml
-├── wrangler.jsonc            # Cloudflare Workers config (JSONC recommended since Wrangler 4.x)
+│   ├── workflows/ci.yml      typecheck, lint, test, gitleaks
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── ISSUE_TEMPLATE/
 ├── package.json
 ├── tsconfig.json
 ├── biome.json
 ├── vitest.config.ts
 ├── README.md
-├── AGENTS.md                 # This file
+├── ROADMAP.md
+├── AGENTS.md                 This file
 ├── SECURITY.md
 ├── LICENSE
 ├── .gitignore
+├── .nvmrc
 └── .env.example
 ```
+
+Future versions add `eval/` for Promptfoo fixtures, `infra/` for database schemas, and `training/` for fine-tune scripts.
 
 ---
 
@@ -194,20 +190,20 @@ Common scopes. `webhook`, `router`, `sensor`, `eval`, `frontend`, `infra`.
 
 ## What to do when you encounter the unfamiliar
 
-- Cloudflare APIs change. Always check the latest docs at developers.cloudflare.com before generating Workers, Workflows, D1, R2, KV, Durable Objects, Workers AI, or Vectorize code.
-- GitHub App and webhook semantics. Verify at docs.github.com.
-- OpenAI API. Verify at platform.openai.com/docs.
+- OpenAI SDK and structured outputs. Verify at platform.openai.com/docs.
+- GitHub App, webhook payloads, and Reviews API semantics. Verify at docs.github.com.
+- Hono request and response API. Verify at hono.dev.
 - When in doubt, link to the doc URL in the PR description so the human maintainer can verify.
 
 ---
 
 ## Things this project explicitly does not do
 
-- Multi-agent collaboration architectures. We use a cascade (sequential, deterministic) not multi-agent (parallel, coordinated). Multi-agent is overhyped for this domain.
+- Multi-agent collaboration architectures. We use a cascade (sequential, deterministic) not multi-agent (parallel, coordinated).
 - LangChain or LangGraph wrappers. Direct API calls everywhere.
-- Custom inference serving infrastructure. We rely on Cloudflare Workers AI for open-source model inference.
+- Custom inference serving infrastructure. We rely on managed LLM APIs for v0.1 through v0.3.
 - General-purpose chatbot interface. The system is event-driven only (GitHub webhooks).
-- Mock LLM responses in tests. Tests either use real models against synthetic prompts or use deterministic fixtures.
+- Mock LLM responses in unit tests. Tests cover deterministic logic (HMAC, diff parsing, idempotency, route dispatch). LLM calls are exercised through end-to-end smoke tests on real PRs.
 
 ---
 

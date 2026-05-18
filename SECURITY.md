@@ -44,7 +44,7 @@ After a fix is deployed, the reporter is credited in release notes unless anonym
 
 ## Maintainer security practices
 
-- All secrets stored via `wrangler secret put`, never in code or `wrangler.jsonc`.
+- All production secrets stored as Railway service environment variables, never in source. Local development uses a gitignored `.env.local` file.
 - HMAC signature verification uses constant-time comparison.
 - Pre-commit hook (`gitleaks`) scans for accidentally staged secrets.
 - GitHub branch protection blocks force-push on `main`.
