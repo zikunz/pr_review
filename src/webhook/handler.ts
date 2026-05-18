@@ -313,7 +313,19 @@ async function runReview(ctx: ReviewContext): Promise<void> {
 
 function formatFinding(f: Finding): string {
   const header = `**[${f.severity.toUpperCase()} | ${f.category}]** confidence ${f.confidence.toFixed(2)}`;
-  return [header, '', f.message].join('\n');
+  // The model controls f.message. Escape backticks so the message cannot break
+  // out of inline-code, and convert HTML-significant characters so a crafted
+  // finding cannot inject markup. The result is rendered as Markdown by
+  // GitHub but cannot include images, links, or fenced blocks that the model
+  // did not earn through the verified-against-diff path.
+  const safeMessage = f.message
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/`/g, '\\`')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]');
+  return [header, '', safeMessage].join('\n');
 }
 
 function formatReviewBody(summary: string, total: number, posted: number): string {

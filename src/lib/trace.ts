@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const TRACE_DIR = resolve(process.cwd(), 'traces');
@@ -18,7 +18,8 @@ export interface TraceRecord {
   details?: Record<string, unknown>;
 }
 
-const SENSITIVE_KEY_PATTERN = /token|secret|authorization|password|api[_-]?key|cookie|bearer/i;
+const SENSITIVE_KEY_PATTERN =
+  /token|secret|authorization|password|api[_-]?key|cookie|bearer|credential|private[_-]?key|signing|jwt|session|passphrase|x-hub-signature/i;
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
 const MAX_STRING_CHARS = 4000;
@@ -84,14 +85,22 @@ export function trace(record: Omit<TraceRecord, 'ts'>): void {
     ts: new Date().toISOString(),
     ...record,
   };
-  if (full.error) full.error = String(full.error).slice(0, 2000);
+  // The raw error message can include upstream response bodies. Run the
+  // redactor over it so anything that looks like a secret key disappears,
+  // then cap the length.
+  if (full.error) {
+    full.error = String(redactForTrace(String(full.error))).slice(0, 2000);
+  }
   if (full.details) {
     full.details = redactForTrace(full.details) as Record<string, unknown>;
   }
   try {
-    if (!existsSync(TRACE_DIR)) mkdirSync(TRACE_DIR, { recursive: true });
+    // mkdirSync with recursive: true is idempotent, so no existsSync guard
+    // is needed. Restrict trace directory and file permissions because trace
+    // records can contain PR titles, bodies, and finding messages.
+    mkdirSync(TRACE_DIR, { recursive: true, mode: 0o700 });
     const file = resolve(TRACE_DIR, `${full.ts.slice(0, 10)}.jsonl`);
-    appendFileSync(file, `${JSON.stringify(full)}\n`, 'utf8');
+    appendFileSync(file, `${JSON.stringify(full)}\n`, { encoding: 'utf8', mode: 0o600 });
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     console.warn(`trace write failed: ${reason}`);

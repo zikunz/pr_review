@@ -14,7 +14,13 @@ export const Category = z.enum([
 export type Category = z.infer<typeof Category>;
 
 export const Finding = z.object({
-  file: z.string().min(1),
+  // Reject control characters in the path so a crafted finding cannot inject
+  // markdown or break out of code spans when the finding is posted as a PR
+  // review comment.
+  file: z
+    .string()
+    .min(1)
+    .regex(/^[^\r\n]+$/, { message: 'file must not contain line breaks' }),
   line: z.number().int().positive(),
   severity: Severity,
   category: Category,
