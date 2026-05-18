@@ -28,6 +28,10 @@ app.post('/github/webhook', async (c) => {
     return c.text('missing X-GitHub-Delivery header', 400);
   }
 
+  if (event !== 'pull_request' && event !== 'issue_comment') {
+    return c.json({ status: 'ignored', reason: `event ${event ?? 'unknown'}` }, 200);
+  }
+
   let payload: unknown;
   try {
     payload = JSON.parse(rawBody);
@@ -39,9 +43,6 @@ app.post('/github/webhook', async (c) => {
     const result = handlePullRequestEvent(payload as PullRequestPayload, deliveryId);
     return result.status === 'accepted' ? c.json(result, 202) : c.json(result, 200);
   }
-  if (event === 'issue_comment') {
-    const result = handleIssueCommentEvent(payload as IssueCommentPayload, deliveryId);
-    return result.status === 'accepted' ? c.json(result, 202) : c.json(result, 200);
-  }
-  return c.json({ status: 'ignored', reason: `event ${event ?? 'unknown'}` }, 200);
+  const result = handleIssueCommentEvent(payload as IssueCommentPayload, deliveryId);
+  return result.status === 'accepted' ? c.json(result, 202) : c.json(result, 200);
 });

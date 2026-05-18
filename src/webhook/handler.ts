@@ -105,7 +105,7 @@ function escapeRegex(s: string): string {
 }
 
 export function isBotMentioned(body: string, botUsername: string): boolean {
-  const pattern = new RegExp(`@${escapeRegex(botUsername)}(?:\\[bot\\])?\\b`, 'i');
+  const pattern = new RegExp(`@${escapeRegex(botUsername)}(?:\\[bot\\])?(?![\\w-])`, 'i');
   return pattern.test(body);
 }
 
