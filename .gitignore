@@ -142,6 +142,7 @@ fixtures/real/
 fixtures/private/
 local-data/
 sample-prs-private/
+traces/
 
 # ============================================================
 # Promptfoo cached results
