@@ -17,6 +17,8 @@ const idempotency = new IdempotencyStore();
 
 const ALLOWED_PR_ACTIONS = new Set(['opened', 'synchronize', 'reopened']);
 
+export const MAX_PROMPT_DIFF_CHARS = 200_000;
+
 export interface PullRequestPayload {
   action: string;
   installation?: { id: number };
@@ -151,14 +153,30 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       return;
     }
 
-    const files = await fetchPullRequestFiles(ctx.installationId, ctx.coords, ctx.prNumber);
-    const filesWithPatch = files.filter((f) => f.patch);
+    const filesResult = await fetchPullRequestFiles(ctx.installationId, ctx.coords, ctx.prNumber);
+    const filesWithPatch = filesResult.files.filter((f) => f.patch);
     if (filesWithPatch.length === 0) {
       trace({
         event: 'review.skipped',
         ...baseLog,
         status: 'skipped',
-        details: { reason: 'no textual diff' },
+        details: { reason: 'no textual diff', filesTruncated: filesResult.truncated },
+      });
+      return;
+    }
+
+    const totalPatchChars = filesWithPatch.reduce((sum, f) => sum + (f.patch?.length ?? 0), 0);
+    if (totalPatchChars > MAX_PROMPT_DIFF_CHARS) {
+      trace({
+        event: 'review.skipped',
+        ...baseLog,
+        status: 'skipped',
+        details: {
+          reason: 'diff exceeds prompt size cap',
+          totalPatchChars,
+          capChars: MAX_PROMPT_DIFF_CHARS,
+          filesTruncated: filesResult.truncated,
+        },
       });
       return;
     }
@@ -194,9 +212,15 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       return;
     }
 
-    const validFindings = result.review.findings.filter((f) =>
-      isValidCommentLocation(validLocations, f.file, f.line),
-    );
+    const validFindings: Finding[] = [];
+    const droppedFindings: Array<{ file: string; line: number }> = [];
+    for (const f of result.review.findings) {
+      if (isValidCommentLocation(validLocations, f.file, f.line)) {
+        validFindings.push(f);
+      } else {
+        droppedFindings.push({ file: f.file, line: f.line });
+      }
+    }
 
     const inlineComments: InlineReviewComment[] = validFindings.map((f) => ({
       path: f.file,
@@ -229,7 +253,9 @@ async function runReview(ctx: ReviewContext): Promise<void> {
         trigger: ctx.triggerEvent,
         totalFindings: result.review.findings.length,
         postedFindings: validFindings.length,
-        droppedFindings: result.review.findings.length - validFindings.length,
+        droppedFindings: droppedFindings.length,
+        droppedFindingLocations: droppedFindings,
+        filesTruncated: filesResult.truncated,
         usage: result.usage,
       },
     });

@@ -18,7 +18,7 @@ export const Finding = z.object({
   line: z.number().int().positive(),
   severity: Severity,
   category: Category,
-  message: z.string().min(20),
+  message: z.string().min(1),
   confidence: z.number().min(0).max(1),
 });
 export type Finding = z.infer<typeof Finding>;
@@ -26,9 +26,11 @@ export type Finding = z.infer<typeof Finding>;
 export const OverallAssessment = z.enum(['comment', 'request_changes', 'approve']);
 export type OverallAssessment = z.infer<typeof OverallAssessment>;
 
+export const MAX_FINDINGS_PER_REVIEW = 5;
+
 export const ReviewOutput = z.object({
-  summary: z.string().min(20),
+  summary: z.string().min(1),
   overall_assessment: OverallAssessment,
-  findings: z.array(Finding),
+  findings: z.array(Finding).max(MAX_FINDINGS_PER_REVIEW),
 });
 export type ReviewOutput = z.infer<typeof ReviewOutput>;

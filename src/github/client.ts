@@ -53,14 +53,22 @@ export async function fetchPullRequest(
   return (await response.json()) as PullRequestSummary;
 }
 
+export const MAX_PR_FILE_PAGES = 30;
+
+export interface PullRequestFilesResult {
+  files: PullRequestFile[];
+  truncated: boolean;
+}
+
 export async function fetchPullRequestFiles(
   installationId: number,
   coords: RepoCoordinates,
   pullNumber: number,
-): Promise<PullRequestFile[]> {
+): Promise<PullRequestFilesResult> {
   const token = await getInstallationToken(installationId);
   const all: PullRequestFile[] = [];
   let page = 1;
+  let truncated = false;
   while (true) {
     const response = await fetch(
       `${GITHUB_API}/repos/${coords.owner}/${coords.repo}/pulls/${pullNumber}/files?per_page=100&page=${page}`,
@@ -71,9 +79,12 @@ export async function fetchPullRequestFiles(
     all.push(...batch);
     if (batch.length < 100) break;
     page++;
-    if (page > 30) break;
+    if (page > MAX_PR_FILE_PAGES) {
+      truncated = true;
+      break;
+    }
   }
-  return all;
+  return { files: all, truncated };
 }
 
 export interface InlineReviewComment {

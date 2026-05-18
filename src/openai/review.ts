@@ -31,8 +31,10 @@ export interface ReviewCallResult {
   model: string;
 }
 
+const DEFAULT_MODEL = 'gpt-5.3-codex';
+
 export async function callReview(input: ReviewCallInput): Promise<ReviewCallResult> {
-  const model = input.model ?? 'gpt-5.3-codex';
+  const model = input.model ?? DEFAULT_MODEL;
   const completion = await client().chat.completions.parse({
     model,
     messages: [
@@ -43,6 +45,9 @@ export async function callReview(input: ReviewCallInput): Promise<ReviewCallResu
   });
 
   const message = completion.choices[0]?.message;
+  if (message?.refusal) {
+    throw new Error(`OpenAI refused the request: ${message.refusal}`);
+  }
   if (!message?.parsed) {
     throw new Error('OpenAI returned no parsed review payload');
   }
