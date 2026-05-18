@@ -31,7 +31,7 @@ const EnvSchema = z.object({
     .string()
     .min(100)
     .transform((s) => s.replace(/\\n/g, '\n')),
-  GITHUB_WEBHOOK_SECRET: z.string().min(8),
+  GITHUB_WEBHOOK_SECRET: z.string().min(32),
   GITHUB_BOT_USERNAME: z.string().min(1).default('pr-cascade-bot'),
   OPENAI_API_KEY: z.string().startsWith('sk-'),
   OPENAI_MODEL: z.string().min(1).default('gpt-5.3-codex'),
@@ -46,8 +46,13 @@ export function getEnv(): Env {
   if (cached) return cached;
   const parsed = EnvSchema.safeParse(process.env);
   if (!parsed.success) {
+    const fieldErrors = parsed.error.issues.map((i) => ({
+      path: i.path.join('.'),
+      code: i.code,
+      message: i.message,
+    }));
     console.error('Invalid environment configuration');
-    console.error(JSON.stringify(parsed.error.format(), null, 2));
+    console.error(JSON.stringify(fieldErrors, null, 2));
     process.exit(1);
   }
   cached = parsed.data;

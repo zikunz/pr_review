@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
-const TEST_SECRET = "It's a Secret to Everybody";
+const TEST_SECRET = 'It-is-a-Secret-To-Everybody-32-chars';
 const TEST_BODY = 'Hello, World!';
-const TEST_VALID_SIG = 'sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17';
+const TEST_VALID_SIG = 'sha256=9ac3d27370518ab567c1a1f3cb87ea39937352cb016e5deb6aed19e59b5b9d2d';
 
 let app: typeof import('@/app').app;
 
@@ -77,7 +77,7 @@ describe('POST /github/webhook', () => {
   });
 
   it('rejects body that is not valid JSON', async () => {
-    const sig = 'sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17';
+    const sig = 'sha256=9ac3d27370518ab567c1a1f3cb87ea39937352cb016e5deb6aed19e59b5b9d2d';
     const res = await app.fetch(
       new Request('http://local/github/webhook', {
         method: 'POST',

@@ -1,6 +1,6 @@
 # PR Cascade
 
-> A GitHub Pull Request review agent that posts inline comments, routes across model tiers for cost efficiency, and verifies LLM findings against the actual diff before posting.
+> A GitHub Pull Request review agent that posts inline comments and validates every LLM finding against the actual diff before posting. Multi tier model cascade lands in v0.2.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -8,7 +8,7 @@
 
 ## What this is
 
-PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per review cost cap. Triggers cover the standard PR lifecycle (open, push, reopen) plus an explicit `@bot review` mention for manual re-runs.
+PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per review cost cap. Triggers cover the standard PR lifecycle (open, push, reopen) plus an `@<bot-name>` mention in a PR comment for manual re-runs.
 
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
 
@@ -18,9 +18,9 @@ Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
 GitHub PR event
         ↓
 POST /github/webhook
-   verify HMAC, check idempotency
+   verify HMAC, parse body, check idempotency
         ↓
-Async pipeline
+Return 202 promptly, then async pipeline
    fetch PR data
    call LLM with structured output
    filter findings to lines that exist in the diff
@@ -34,14 +34,31 @@ Most automated code review tools treat the model as a black box and ship a singl
 
 Three ideas drive the design.
 
-1. Verifiability over confidence. Every finding will eventually carry a calibrated confidence score, and the bot verifies each claim against the actual diff before posting it.
+1. Verifiability over confidence. Each finding carries a model declared confidence score today, and the bot already verifies that every claim references a line that exists in the diff. Calibration of that score lands in v0.3 via tool based verification.
 2. Cost discipline. Routine reviews stay on small models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
 3. Transparency. Prompts, eval methodology, and trace formats are open so anyone can reproduce or critique the approach.
+
+## Quickstart
+
+Local development. Requires Node 24 or later and an OpenAI API key.
+
+```bash
+git clone https://github.com/zikunz/pr_review.git
+cd pr_review
+npm install
+cp .env.example .env.local
+# Fill in GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET,
+# GITHUB_BOT_USERNAME, OPENAI_API_KEY in .env.local
+npm run verify   # typecheck, lint, run all tests
+npm run dev      # starts on http://localhost:3000
+```
+
+Production deployment uses Railway. Set the same environment variables in the Railway service, point the GitHub App webhook URL to `https://<your-railway-domain>/github/webhook`, then push to the `main` branch. See [ROADMAP.md](./ROADMAP.md) for the full GitHub App registration checklist.
 
 ## Tech stack
 
 - Runtime. Node 24 with TypeScript strict
-- Framework. Hono (universal across Node and Cloudflare Workers)
+- Framework. Hono via `@hono/node-server`. The framework is portable to Cloudflare Workers, though only the Node adapter is wired up today.
 - LLM inference. OpenAI API for v0.1, cascade across multiple tiers in v0.2
 - Hosting. Railway for v0.1 through v0.3
 - Storage. In memory map for idempotency in v0.1. Database in later versions.

@@ -4,7 +4,7 @@ Canonical product spec for PR Cascade. Last updated 2026-05-18.
 
 ## Identity
 
-PR Cascade is a GitHub Pull Request review agent that demonstrates production engineering for LLM applications. It posts inline review comments, runs a model cascade for cost efficiency, and verifies LLM proposed findings against the source tree before posting.
+PR Cascade is a GitHub Pull Request review agent that demonstrates production engineering for LLM applications. It posts inline review comments, will run a model cascade for cost efficiency once v0.2 lands, and verifies that every proposed finding references a line that actually exists in the PR diff before posting.
 
 ## Why this exists
 
@@ -12,7 +12,7 @@ Most automated code review tools treat the model as a black box and ship a singl
 
 Three ideas drive the design.
 
-1. Verifiability over confidence. Every finding carries a calibrated confidence score, and the bot verifies each claim against the actual diff before posting it.
+1. Verifiability over confidence. Each finding carries a model declared confidence score today, and the bot already verifies that every claim references a line that exists in the diff. Calibration of the confidence score lands in v0.3 via tool based verification.
 2. Cost discipline. Routine reviews stay on small open source models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
 3. Transparency. Prompts, eval methodology, and trace data formats are open so anyone can reproduce or critique the approach.
 
@@ -61,10 +61,10 @@ POST /github/webhook
 verify HMAC SHA-256 in constant time
         │
         ▼
-idempotency check on X-GitHub-Delivery
+parse JSON body and check idempotency on X-GitHub-Delivery
         │
         ▼
-return 200 within 5s
+return 202 Accepted promptly (well under the GitHub 10s budget)
         │
         ▼
 async pipeline
@@ -100,13 +100,13 @@ In scope.
 - GitHub App installation token authentication
 - Fetch PR metadata, files, and diff
 - Single `gpt-5.3-codex` call per review with structured JSON output
-- Single hardcoded persona named balanced senior engineer
+- Single hardcoded persona named senior software engineer (matches the wording in `src/openai/prompt.ts`)
 - PR Review with inline comments via `line` plus `side` API
-- Per review cost cap at $0.30 hard fail
+- Per review cost cap (default $0.30, configurable via `COST_CAP_CENTS_PER_REVIEW`). Reviews exceeding the cap are skipped and logged.
 - Idempotency via in memory map keyed by delivery ID, 24 hour TTL
 - Local file logging for traces
 - Triggers on `pull_request.opened`, `synchronize`, `reopened`
-- Manual re-trigger on `issue_comment.created` when the comment body contains the bot mention pattern (`@<bot-name> review`)
+- Manual re-trigger on `issue_comment.created` when the comment body mentions the bot (any `@<bot-name>` mention, optionally followed by the `[bot]` suffix)
 - Deploy to Railway with `/health` endpoint
 
 Not in v0.1. Cascade, persona config, auto detection, agentic tools, repository wide context, verification, eval pipeline, frontend dashboard.
@@ -159,17 +159,17 @@ Not committed. Listed for direction.
 
 ## Personas and config
 
-The default persona for v0.1 is balanced senior engineer.
+The default persona for v0.1 is senior software engineer (see `src/openai/prompt.ts` for the exact prompt text).
 
 ```
-Focus     bugs, security, performance, API misuse
+Focus     bugs, security, performance, API misuse, concurrency
 Ignore    style, naming, subjective architecture choices
 Tone      direct and constructive
-Findings  maximum 5 per review
-Threshold confidence 0.6 minimum to post
+Findings  prompt requests at most 5 per review, schema does not yet enforce
+Threshold model declared confidence is captured today, post side threshold lands in v0.2
 ```
 
-Starting v0.2, users override via `.cascade.yml` in repo root.
+Starting v0.2 (planned), users override via `.cascade.yml` in repo root.
 
 ```yaml
 preset: production
@@ -197,9 +197,9 @@ strict_paths:
 
 Starting v0.3, auto detection runs when no config exists. README mentions hackathon or WIP map to `prototype`. Comprehensive CI plus repo age greater than six months plus more than 500 commits map to `production`. Path matches auth or payments or crypto trigger `security_audit`.
 
-## Onboarding flow
+## Onboarding flow (planned for v0.2)
 
-The first review in a newly installed repository opens with this card.
+The first review in a newly installed repository opens with this card once persona config ships.
 
 ```
 First review in this repo. Defaulting to senior_engineer persona.
@@ -227,12 +227,12 @@ Honest classification of project components.
 | Langfuse observability with trace IDs | Engineering depth | Careful integration |
 | Eval flywheel with weekly trace review | Engineering depth | Best practice rarely executed |
 | Persona system with config and presets | Engineering depth | CodeRabbit has lighter version |
-| Agentic tool use across four tools | Frontier-ish (in OSS) | Cursor uses internally, no public OSS implementation |
+| Agentic tool use across four tools | Frontier-ish (in OSS) | Closed source IDE agents reportedly do this internally. No public OSS code review bot publishes a reference implementation. |
 | **Tool based verification with calibrated confidence** | **Frontier** | No commercial bot publishes this. The differentiator. |
 | Auto detect persona from repo signals | Frontier-ish | Unimplemented in commercial bots |
 | Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major AI safety teams |
 
-Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascade is a production code review agent with tool based verification that materially reduces LLM false positive rate, open sourced as a reference implementation.
+Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascade is a production code review agent with tool based verification that aims to reduce LLM false positive rate against a measured v0.1 baseline, open sourced as a reference implementation.
 
 ## Risks and landmines
 
@@ -243,7 +243,7 @@ Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascad
 | GitHub App private key leak | Critical | Stored as Railway secret. Never in repo. Daily git history scan via gitleaks. Rotation plan if exposed |
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
 | OpenAI rate limit hit | Low | Exponential backoff. Tier 5 limits far exceed projected load |
-| Cost runaway from infinite loop | Critical | Per repo daily cost cap. Hard kill switch via env var. Per review hard cap $0.30 |
+| Cost runaway from misconfiguration or unexpected traffic | Critical | Per review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per repo and per day caps planned in v0.2. |
 | Review post fails after LLM cost incurred | Medium | Log finding to retry queue. Idempotent retry by storing parsed output |
 | Force push leaves stale inline comments | Low | GitHub auto marks them outdated. No action required |
 | Persona config syntax error | Low | Strict Zod schema. Fall back to default and notify in review body |
@@ -299,7 +299,7 @@ The author must complete the following manual setup before the bot operates.
 
 1. Confirm Tier 5 access (already verified)
 2. Set monthly organization budget hard cap to $25
-3. Generate API key restricted to chat completions scope
+3. Generate an API key. Project keys with a model allowlist are recommended over org keys
 4. Store as `OPENAI_API_KEY`
 
 ## Glossary
@@ -314,7 +314,7 @@ The author must complete the following manual setup before the bot operates.
 
 **Inline comment**. A review comment attached to a specific diff line, as opposed to a top level PR comment.
 
-**MCP**. Model Context Protocol. An open standard for connecting LLMs to external tools and data sources. The bot does not use MCP directly because OpenAI does not support it natively. The bot replicates the same capability via OpenAI function calling.
+**MCP**. Model Context Protocol. An open standard for connecting LLMs to external tools and data sources. The bot does not use MCP directly. The chat completions endpoint we use does not consume MCP servers, and the OpenAI Responses API path is reserved for a future iteration. The bot replicates the same capability via OpenAI function calling.
 
 **Persona**. A predefined configuration of review focus, tone, and thresholds, mapped to a specific system prompt.
 
@@ -324,4 +324,4 @@ The author must complete the following manual setup before the bot operates.
 
 **Tool based verification**. Pattern where LLM proposed findings are checked by deterministic tools (AST parser, symbol resolver, test coverage check) before being shown to the user.
 
-**Tree-sitter**. Parser library covering 80+ languages, producing concrete syntax trees. The bot uses it for AST inspection in v0.3.
+**Tree-sitter**. Parser library with grammars covering 100+ languages, producing concrete syntax trees. The bot uses it for AST inspection in v0.3.

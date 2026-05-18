@@ -27,13 +27,11 @@ In scope.
 - Authentication or authorization issues in any administrative endpoint
 - Secret exposure via logs, response bodies, or error messages
 - Remote code execution vulnerabilities
-- Cross-site scripting in the dashboard
-- SQL injection (queries should be parameterized but please test)
-- Prompt injection enabling exfiltration of secrets or PII
-- Unauthorized access to D1 data, R2 buckets, or KV namespaces
+- Prompt injection enabling exfiltration of secrets or sensitive context
+- Unauthorized access to GitHub App installation tokens or webhook payloads
 
 Out of scope.
-- Issues in third-party services we depend on (please report to them)
+- Issues in third party services we depend on (please report to them)
 - Denial of service via legitimate API usage at scale
 - Social engineering of users
 - Spam or content abuse not specific to this codebase
@@ -45,7 +43,6 @@ After a fix is deployed, the reporter is credited in release notes unless anonym
 ## Maintainer security practices
 
 - All production secrets stored as Railway service environment variables, never in source. Local development uses a gitignored `.env.local` file.
-- HMAC signature verification uses constant-time comparison.
-- Pre-commit hook (`gitleaks`) scans for accidentally staged secrets.
-- GitHub branch protection blocks force-push on `main`.
+- HMAC signature verification uses constant time comparison.
+- GitHub Actions CI runs gitleaks on every push to scan for accidentally committed secrets.
 - Public webhook endpoints validate every request signature before any business logic.

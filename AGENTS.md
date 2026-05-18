@@ -24,7 +24,7 @@ npm run typecheck
 # Lint and format check
 npm run check
 
-# Auto-fix format and safe lint issues
+# Auto fix format and safe lint issues
 npm run format
 
 # Run tests
@@ -33,12 +33,11 @@ npm test
 # Run all checks (typecheck, lint, format, test)
 npm run verify
 
-# Local dev (Cloudflare Workers)
+# Local dev server with file watch
 npm run dev
-
-# Deploy to Cloudflare
-npm run deploy
 ```
+
+Production deployment runs through Railway and uses `npm run start` as the launch command.
 
 ---
 
