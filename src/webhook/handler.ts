@@ -9,7 +9,7 @@ import {
   type RepoCoordinates,
 } from '@/github/client';
 import { isValidCommentLocation, parseDiffLocations } from '@/github/diff';
-import { estimateCost } from '@/lib/cost';
+import { type CostBreakdown, estimateCost } from '@/lib/cost';
 import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
 import { callReview } from '@/openai/review';
@@ -215,12 +215,26 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       model: env.OPENAI_MODEL,
     });
 
-    const cost = estimateCost(
-      result.model,
-      result.usage.inputTokens,
-      result.usage.outputTokens,
-      result.usage.cachedInputTokens,
-    );
+    let cost: CostBreakdown;
+    try {
+      cost = estimateCost(
+        result.model,
+        result.usage.inputTokens,
+        result.usage.outputTokens,
+        result.usage.cachedInputTokens,
+      );
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      trace({
+        event: 'review.pricing_missing',
+        ...baseLog,
+        status: 'failed',
+        model: result.model,
+        durationMs: Date.now() - start,
+        details: { reason, usage: result.usage },
+      });
+      return;
+    }
 
     if (cost.totalCents > env.COST_CAP_CENTS_PER_REVIEW) {
       trace({

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { ContentFilterFinishReasonError, LengthFinishReasonError } from 'openai/error';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { getEnv } from '@/env';
 import { buildUserPrompt, type PromptFile, SYSTEM_PROMPT } from './prompt';
@@ -31,25 +32,58 @@ export interface ReviewCallResult {
   model: string;
 }
 
-const DEFAULT_MODEL = 'gpt-5.3-codex';
+export class ReviewTruncatedError extends Error {
+  constructor(public readonly model: string) {
+    super('OpenAI hit the output length limit before completing the review');
+    this.name = 'ReviewTruncatedError';
+  }
+}
+
+export class ReviewContentFilteredError extends Error {
+  constructor(public readonly model: string) {
+    super('OpenAI content filter blocked the review output');
+    this.name = 'ReviewContentFilteredError';
+  }
+}
+
+export class ReviewRefusedError extends Error {
+  constructor(
+    public readonly model: string,
+    public readonly refusal: string,
+  ) {
+    super(`OpenAI refused the request for model ${model}`);
+    this.name = 'ReviewRefusedError';
+  }
+}
 
 export async function callReview(input: ReviewCallInput): Promise<ReviewCallResult> {
-  const model = input.model ?? DEFAULT_MODEL;
-  const completion = await client().chat.completions.parse({
-    model,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserPrompt(input) },
-    ],
-    response_format: zodResponseFormat(ReviewOutput, 'pr_review'),
-  });
+  const model = input.model ?? getEnv().OPENAI_MODEL;
+  const completion = await client()
+    .chat.completions.parse({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: buildUserPrompt(input) },
+      ],
+      response_format: zodResponseFormat(ReviewOutput, 'pr_review'),
+    })
+    .catch((err: unknown) => {
+      if (err instanceof LengthFinishReasonError) throw new ReviewTruncatedError(model);
+      if (err instanceof ContentFilterFinishReasonError) {
+        throw new ReviewContentFilteredError(model);
+      }
+      throw err;
+    });
 
+  if (completion.choices.length === 0) {
+    throw new Error(`OpenAI returned no choices for model ${model}`);
+  }
   const message = completion.choices[0]?.message;
   if (message?.refusal) {
-    throw new Error(`OpenAI refused the request: ${message.refusal}`);
+    throw new ReviewRefusedError(model, message.refusal);
   }
   if (!message?.parsed) {
-    throw new Error('OpenAI returned no parsed review payload');
+    throw new Error(`OpenAI returned no parsed review payload for model ${model}`);
   }
 
   const usage = completion.usage;

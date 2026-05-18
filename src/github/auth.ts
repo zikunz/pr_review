@@ -3,6 +3,7 @@ import { getEnv } from '@/env';
 
 let cachedPrivateKey: CryptoKey | undefined;
 const installationTokenCache = new Map<number, { token: string; expiresAtMs: number }>();
+const installationTokenInflight = new Map<number, Promise<string>>();
 
 async function loadPrivateKey(): Promise<CryptoKey> {
   if (cachedPrivateKey) return cachedPrivateKey;
@@ -28,13 +29,7 @@ interface InstallationTokenResponse {
   expires_at: string;
 }
 
-export async function getInstallationToken(installationId: number): Promise<string> {
-  const now = Date.now();
-  const cached = installationTokenCache.get(installationId);
-  if (cached && now < cached.expiresAtMs - 60_000) {
-    return cached.token;
-  }
-
+async function mintInstallationToken(installationId: number): Promise<string> {
   const jwt = await createAppJwt();
   const response = await fetch(
     `https://api.github.com/app/installations/${installationId}/access_tokens`,
@@ -61,4 +56,25 @@ export async function getInstallationToken(installationId: number): Promise<stri
     expiresAtMs: new Date(data.expires_at).getTime(),
   });
   return data.token;
+}
+
+export async function getInstallationToken(installationId: number): Promise<string> {
+  const now = Date.now();
+  const cached = installationTokenCache.get(installationId);
+  if (cached && now < cached.expiresAtMs - 60_000) {
+    return cached.token;
+  }
+
+  // Coalesce concurrent callers onto a single mint request. Without this, two
+  // simultaneous webhooks for the same installation would both POST to
+  // /access_tokens; GitHub revokes the older token, leaving any in-flight
+  // request that used it to 401.
+  const existing = installationTokenInflight.get(installationId);
+  if (existing) return existing;
+
+  const mint = mintInstallationToken(installationId).finally(() => {
+    installationTokenInflight.delete(installationId);
+  });
+  installationTokenInflight.set(installationId, mint);
+  return mint;
 }
