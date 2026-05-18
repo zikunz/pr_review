@@ -20,17 +20,58 @@ export interface TraceRecord {
 
 const SENSITIVE_KEY_PATTERN = /token|secret|authorization|password|api[_-]?key|cookie|bearer/i;
 const REDACTED = '[REDACTED]';
+const MAX_DEPTH = 6;
+const MAX_STRING_CHARS = 4000;
 
 // Defensive redaction. The handler controls what enters `details` today, but any
 // future caller passing an error envelope or a raw HTTP response could put a
-// credential here. Strip keys whose names suggest secrets and truncate raw
-// strings that look long enough to embed one.
+// credential here. The redactor:
+//   - strips keys whose names suggest secrets
+//   - caps recursion depth so cyclic shapes do not stack overflow
+//   - truncates raw strings
+//   - converts well known object types (Date, Error, RegExp, Map, Set, Buffer)
+//     to a JSON safe form
+//   - drops BigInt values that would otherwise throw inside JSON.stringify
 export function redactForTrace(value: unknown, depth = 0): unknown {
   if (value == null) return value;
-  if (depth > 6) return REDACTED;
-  if (typeof value === 'string') return value.length > 4000 ? `${value.slice(0, 4000)}…` : value;
-  if (typeof value !== 'object') return value;
-  if (Array.isArray(value)) return value.map((item) => redactForTrace(item, depth + 1));
+  if (depth > MAX_DEPTH) return REDACTED;
+
+  switch (typeof value) {
+    case 'string':
+      return value.length > MAX_STRING_CHARS ? `${value.slice(0, MAX_STRING_CHARS)}…` : value;
+    case 'bigint':
+      return `${value.toString()}n`;
+    case 'function':
+      return '[Function]';
+    case 'symbol':
+      return value.toString();
+    case 'number':
+    case 'boolean':
+      return value;
+  }
+
+  if (value instanceof Error) {
+    return { name: value.name, message: value.message };
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '[InvalidDate]' : value.toISOString();
+  }
+  if (value instanceof RegExp) {
+    return value.toString();
+  }
+  if (Buffer.isBuffer(value) || ArrayBuffer.isView(value)) {
+    return `[Binary ${(value as { byteLength: number }).byteLength}b]`;
+  }
+  if (value instanceof Map) {
+    return redactForTrace(Object.fromEntries(value), depth + 1);
+  }
+  if (value instanceof Set) {
+    return redactForTrace([...value], depth + 1);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactForTrace(item, depth + 1));
+  }
+
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
     out[k] = SENSITIVE_KEY_PATTERN.test(k) ? REDACTED : redactForTrace(v, depth + 1);
