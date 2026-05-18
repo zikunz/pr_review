@@ -30,7 +30,7 @@ npm run format
 # Run tests
 npm test
 
-# Run all checks (typecheck, lint, format, test)
+# Run all checks (typecheck, lint plus format check, test)
 npm run verify
 
 # Local dev server with file watch
@@ -95,16 +95,16 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 ```typescript
 // Order
 // 1. Node built-ins
-import { Buffer } from 'node:buffer';
+import { createHmac } from 'node:crypto';
 
 // 2. Third-party
 import { z } from 'zod';
 
 // 3. Internal absolute (@/)
-import { verifyHmacSignature } from '@/crypto';
+import { verifyGitHubSignature } from '@/webhook/verify';
 
 // 4. Internal relative (same dir)
-import { parsePayload } from './parser';
+import { parseDiffLocations } from './diff';
 ```
 
 Biome handles import sorting automatically. Run `npm run format` before commit.
@@ -162,7 +162,7 @@ Future versions add `eval/` for Promptfoo fixtures, `infra/` for database schema
 These are non-negotiable. Any code suggestion or generated commit that violates these must be flagged and corrected.
 
 1. **No secrets in code or commits ever**. Even placeholder fake API keys should look syntactically obviously fake (e.g., `your-api-key-here`).
-2. **HMAC and signature comparison must be constant-time**. Use `crypto.subtle` `timingSafeEqual` pattern or equivalent. Never `===`.
+2. **HMAC and signature comparison must be constant time**. Use `node:crypto` `timingSafeEqual` on Buffer inputs, or the Web Crypto `crypto.subtle` equivalent when running on Workers. Never `===`.
 3. **No real user data in test fixtures**. Synthetic only.
 4. **Conventional Commits for all commit messages**. See ROADMAP.md for cadence and message structure.
 5. **No `console.log` of prompts, API responses, or webhook bodies**. Use structured logging via observability layer.

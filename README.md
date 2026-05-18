@@ -8,7 +8,7 @@
 
 ## What this is
 
-PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per review cost cap. Triggers cover the standard PR lifecycle (open, push, reopen) plus an `@<bot-name>` mention in any PR comment for manual re-runs.
+PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention in a PR comment for manual re-runs.
 
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
 

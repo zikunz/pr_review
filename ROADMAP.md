@@ -45,7 +45,7 @@ This project explicitly does not do the following.
 | Observability (v0.2+) | Langfuse cloud free tier initially | Self host for v0.3 |
 | Package manager | npm | |
 
-Cloudflare Workers is an intentional v0.4 target. Hono itself was designed for Workers first, and the business logic in this repository does not depend on Node specific APIs outside of `src/server.ts` and `src/lib/trace.ts`. The migration is a swap of the entry file and the trace sink, not a rewrite.
+Cloudflare Workers is an intentional v0.4 target. Hono itself was designed for Workers first, and the business logic in this repository does not depend on Node specific APIs outside the entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), and the dotenv loader (`src/env.ts`). The migration swaps those three files; the rest of the codebase ports unchanged.
 
 ## Architecture (v0.1)
 
@@ -149,7 +149,7 @@ Target outcome. The v0.1 production traces establish the baseline false positive
 
 Not committed. Listed for direction.
 
-- LoRA distillation from `gpt-5.3-codex` to Mistral 7B Instruct v0.2 on Cloudflare Workers AI
+- LoRA fine tune of Mistral 7B Instruct v0.2 on a self collected, permissively licensed review dataset, served via Cloudflare Workers AI as the tier 1 router target
 - Migration of full stack to Cloudflare Workers when Startups credits arrive
 - Adversarial robustness study with prompt injection PR corpus and defensive sensor
 - Cross codebase pattern recognition via vector database of historical PR outcomes
@@ -236,11 +236,11 @@ Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascad
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Diff exceeds context window | Medium | Chunk by file. Skip review if total exceeds 100K tokens. Tell user to split PR |
+| Diff exceeds context window | Medium | Total patch character count is capped (`MAX_PROMPT_DIFF_CHARS = 200_000` in `src/webhook/handler.ts`); reviews above the cap are skipped and logged. Per file chunking is a v0.2 candidate. |
 | Webhook duplicate delivery | High | Idempotency map keyed on `X-GitHub-Delivery` with 24 hour TTL |
 | GitHub App private key leak | Critical | Stored as Railway secret. Never in repo. Daily git history scan via gitleaks. Rotation plan if exposed |
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
-| OpenAI rate limit hit | Low | Exponential backoff. Tier 5 limits far exceed projected load |
+| OpenAI rate limit hit | Low | Rely on the SDK's retry semantics for transient 429 responses. Org level rate and spend caps are the second line of defense. |
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per repo and per day caps planned in v0.2. |
 | Review post fails after LLM cost incurred | Medium | Cost and parsed output are written to the trace before the post call, so a failed post is diagnosable from local logs. Retry queue planned in v0.2. |
 | Force push leaves stale inline comments | Low | GitHub auto marks them outdated. No action required |
