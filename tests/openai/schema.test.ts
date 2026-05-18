@@ -104,4 +104,66 @@ describe('ReviewOutput', () => {
       }),
     ).toThrow();
   });
+
+  it('accepts a finding with confidence at the inclusive boundaries 0 and 1', () => {
+    const parsed = ReviewOutput.parse({
+      summary: 'Boundary case.',
+      overall_assessment: 'comment',
+      findings: [
+        { ...validFinding, confidence: 0 },
+        { ...validFinding, confidence: 1 },
+      ],
+    });
+    expect(parsed.findings.length).toBe(2);
+  });
+
+  it('rejects a finding with confidence below zero', () => {
+    expect(() =>
+      ReviewOutput.parse({
+        summary: 'Below boundary.',
+        overall_assessment: 'comment',
+        findings: [{ ...validFinding, confidence: -0.0001 }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a finding with line that is not an integer', () => {
+    expect(() =>
+      ReviewOutput.parse({
+        summary: 'Non integer line.',
+        overall_assessment: 'comment',
+        findings: [{ ...validFinding, line: 1.5 }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a finding whose file path contains a line break', () => {
+    expect(() =>
+      ReviewOutput.parse({
+        summary: 'File path with newline.',
+        overall_assessment: 'comment',
+        findings: [{ ...validFinding, file: 'src/foo.ts\n## Critical' }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a finding whose file path is the empty string', () => {
+    expect(() =>
+      ReviewOutput.parse({
+        summary: 'Empty file path.',
+        overall_assessment: 'comment',
+        findings: [{ ...validFinding, file: '' }],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a finding whose message is the empty string', () => {
+    expect(() =>
+      ReviewOutput.parse({
+        summary: 'Empty message.',
+        overall_assessment: 'comment',
+        findings: [{ ...validFinding, message: '' }],
+      }),
+    ).toThrow();
+  });
 });

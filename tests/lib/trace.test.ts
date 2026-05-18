@@ -72,9 +72,56 @@ describe('redactForTrace', () => {
     const a: Cyclic = {};
     a.self = a;
     const start = Date.now();
-    const out = redactForTrace(a);
+    const out = redactForTrace(a) as { self?: { self?: unknown } };
     expect(Date.now() - start).toBeLessThan(50);
-    expect(out).toBeDefined();
+    // Walk past the recursion cap and assert the leaf collapses to the
+    // redaction marker rather than continuing to recurse.
+    let cur: unknown = out;
+    for (let i = 0; i < 10; i++) {
+      if (cur === '[REDACTED]') break;
+      cur = (cur as { self?: unknown })?.self;
+    }
+    expect(cur).toBe('[REDACTED]');
+  });
+
+  it('renders a Symbol as its description string', () => {
+    expect(redactForTrace(Symbol('hello'))).toBe('Symbol(hello)');
+  });
+
+  it('marks an invalid Date instead of emitting an empty object', () => {
+    expect(redactForTrace(new Date('not-a-date'))).toBe('[InvalidDate]');
+  });
+
+  it('handles a null-prototype object as a plain bag of fields', () => {
+    const bag = Object.create(null);
+    bag.token = 'secret';
+    bag.kept = 'visible';
+    const out = redactForTrace(bag) as Record<string, unknown>;
+    expect(out.token).toBe('[REDACTED]');
+    expect(out.kept).toBe('visible');
+  });
+
+  it('redacts an extended sensitive key set', () => {
+    const out = redactForTrace({
+      credential: 'c',
+      private_key: 'p',
+      privateKey: 'p',
+      signing_key: 's',
+      jwt: 'j',
+      session: 'sess',
+      passphrase: 'pp',
+      'x-hub-signature': 'sig',
+      kept: 'visible',
+    }) as Record<string, unknown>;
+    expect(out.credential).toBe('[REDACTED]');
+    expect(out.private_key).toBe('[REDACTED]');
+    expect(out.privateKey).toBe('[REDACTED]');
+    expect(out.signing_key).toBe('[REDACTED]');
+    expect(out.jwt).toBe('[REDACTED]');
+    expect(out.session).toBe('[REDACTED]');
+    expect(out.passphrase).toBe('[REDACTED]');
+    expect(out['x-hub-signature']).toBe('[REDACTED]');
+    expect(out.kept).toBe('visible');
   });
 
   it('converts a Date to an ISO string instead of an empty object', () => {

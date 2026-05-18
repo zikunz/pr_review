@@ -1,14 +1,32 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { handleIssueCommentEvent, handlePullRequestEvent } from '@/webhook/handler';
 
+const ENV_KEYS = [
+  'GITHUB_APP_ID',
+  'GITHUB_APP_PRIVATE_KEY',
+  'GITHUB_WEBHOOK_SECRET',
+  'OPENAI_API_KEY',
+  'GITHUB_BOT_USERNAME',
+] as const;
+const envSnapshot = new Map<string, string | undefined>();
+
 beforeAll(() => {
-  process.env.GITHUB_APP_ID ??= '12345';
-  process.env.GITHUB_APP_PRIVATE_KEY ??= `-----BEGIN PRIVATE KEY-----
+  for (const key of ENV_KEYS) envSnapshot.set(key, process.env[key]);
+  process.env.GITHUB_APP_ID = '12345';
+  process.env.GITHUB_APP_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 ${'A'.repeat(200)}
 -----END PRIVATE KEY-----`;
-  process.env.GITHUB_WEBHOOK_SECRET ??= 'dispatch-test-secret-32-characters-long';
-  process.env.OPENAI_API_KEY ??= 'sk-test-dispatch-routing-only';
+  process.env.GITHUB_WEBHOOK_SECRET = 'dispatch-test-secret-32-characters-long';
+  process.env.OPENAI_API_KEY = 'sk-test-dispatch-routing-only';
   process.env.GITHUB_BOT_USERNAME = 'pr-cascade-bot';
+});
+
+afterAll(() => {
+  for (const key of ENV_KEYS) {
+    const original = envSnapshot.get(key);
+    if (original === undefined) delete process.env[key];
+    else process.env[key] = original;
+  }
 });
 
 function basePr(action: string, prNumber: number) {

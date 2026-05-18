@@ -68,6 +68,23 @@ describe('buildDiffMarkdown', () => {
     expect(md).toContain('### src/a.ts');
     expect(md).not.toContain('binary.png');
   });
+
+  it('expands the fence when the patch already contains triple backticks', () => {
+    const md = buildDiffMarkdown([
+      {
+        filename: 'README.md',
+        patch: '@@ -1,3 +1,3 @@\n+```\n+code inside\n+```',
+      },
+    ]);
+    // The patch contains a triple-backtick run, so the outer fence must be
+    // at least four backticks long. Verify the opener starts with ````.
+    expect(md).toMatch(/\n````+diff\n/);
+    // The closing fence on the final line must match the opening width.
+    const lines = md.split('\n');
+    const opener = lines.find((l) => /^````+diff$/.test(l));
+    const closer = lines[lines.length - 1];
+    expect(opener?.replace(/diff$/, '')).toBe(closer);
+  });
 });
 
 describe('buildUserPrompt', () => {
@@ -108,5 +125,23 @@ describe('buildUserPrompt', () => {
       files: [{ filename: 'logo.png' }],
     });
     expect(prompt).toContain('(no textual diff available)');
+  });
+
+  it('truncates an oversized PR title with an explicit marker', () => {
+    const prompt = buildUserPrompt({
+      prTitle: 'a'.repeat(2000),
+      prBody: 'body',
+      files: [{ filename: 'a.ts', patch: '@@ -1 +1 @@\n+x' }],
+    });
+    expect(prompt).toMatch(/\[truncated; original was 2000 chars\]/);
+  });
+
+  it('truncates an oversized PR body with an explicit marker', () => {
+    const prompt = buildUserPrompt({
+      prTitle: 'short',
+      prBody: 'b'.repeat(15_000),
+      files: [{ filename: 'a.ts', patch: '@@ -1 +1 @@\n+x' }],
+    });
+    expect(prompt).toMatch(/\[truncated; original was 15000 chars\]/);
   });
 });
