@@ -183,7 +183,7 @@ These are non-negotiable. Any code suggestion or generated commit that violates 
 
 Allowed types. `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`, `build`, `style`.
 
-Common scopes. `webhook`, `github`, `openai`, `lib`, `server`, `ci`, `docs`. `router`, `sensor`, and `eval` become valid scopes once their v0.2 features land.
+Common scopes are the top level source directories (`webhook`, `github`, `openai`, `lib`, `server`) and the cross cutting areas (`ci`, `docs`, `config`). A more specific scope naming a single file or module (`handler`, `prompt`, `schema`, `trace`, `cost`, `client`, `auth`) is fine when the change is genuinely confined to that file. `router`, `sensor`, and `eval` become valid scopes once their v0.2 features land.
 
 ---
 
