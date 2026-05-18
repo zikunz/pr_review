@@ -25,4 +25,20 @@ describe('isBotMentioned', () => {
   it('does not match an unrelated mention', () => {
     expect(isBotMentioned('@some-other-bot please review', 'pr-cascade-bot')).toBe(false);
   });
+
+  it('does not match an email address ending in the bot name', () => {
+    expect(isBotMentioned('contact user@pr-cascade-bot.example', 'pr-cascade-bot')).toBe(false);
+  });
+
+  it('does not match a mailto link', () => {
+    expect(isBotMentioned('mailto:user@pr-cascade-bot.example', 'pr-cascade-bot')).toBe(false);
+  });
+
+  it('does not match when the @ is glued to a preceding word character', () => {
+    expect(isBotMentioned('foo@pr-cascade-bot', 'pr-cascade-bot')).toBe(false);
+  });
+
+  it('matches when preceded by punctuation rather than whitespace', () => {
+    expect(isBotMentioned('(@pr-cascade-bot)', 'pr-cascade-bot')).toBe(true);
+  });
 });

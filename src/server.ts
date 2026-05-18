@@ -4,11 +4,15 @@ import { getEnv } from '@/env';
 
 const env = getEnv();
 
-const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  console.log(`pr-cascade listening on http://0.0.0.0:${info.port}`);
+const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' }, (info) => {
+  console.log(`pr-cascade listening on http://${info.address}:${info.port}`);
 });
 
+let shuttingDown = false;
+
 function shutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`received ${signal}, draining`);
   server.close((err) => {
     if (err) {

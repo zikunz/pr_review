@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { getEnv } from '@/env';
 import {
   fetchPullRequest,
@@ -22,20 +23,32 @@ const ALLOWED_PR_ACTIONS = new Set(['opened', 'synchronize', 'reopened']);
 
 export const MAX_PROMPT_DIFF_CHARS = 200_000;
 
-export interface PullRequestPayload {
-  action: string;
-  installation?: { id: number };
-  repository: { owner: { login: string }; name: string };
-  pull_request: { number: number };
-}
+const Repository = z.object({
+  owner: z.object({ login: z.string().min(1) }),
+  name: z.string().min(1),
+});
 
-export interface IssueCommentPayload {
-  action: string;
-  installation?: { id: number };
-  repository: { owner: { login: string }; name: string };
-  issue: { number: number; pull_request?: unknown };
-  comment: { id: number; body: string };
-}
+const Installation = z.object({ id: z.number().int().positive() }).optional();
+
+export const PullRequestPayload = z.object({
+  action: z.string().min(1),
+  installation: Installation,
+  repository: Repository,
+  pull_request: z.object({ number: z.number().int().positive() }),
+});
+export type PullRequestPayload = z.infer<typeof PullRequestPayload>;
+
+export const IssueCommentPayload = z.object({
+  action: z.string().min(1),
+  installation: Installation,
+  repository: Repository,
+  issue: z.object({
+    number: z.number().int().positive(),
+    pull_request: z.unknown().optional(),
+  }),
+  comment: z.object({ id: z.number().int(), body: z.string() }),
+});
+export type IssueCommentPayload = z.infer<typeof IssueCommentPayload>;
 
 export type DispatchResult =
   | { status: 'accepted' }
@@ -114,7 +127,10 @@ function hasPatch(file: PullRequestFile): file is FileWithPatch {
 }
 
 export function isBotMentioned(body: string, botUsername: string): boolean {
-  const pattern = new RegExp(`@${escapeRegex(botUsername)}(?:\\[bot\\])?(?![\\w-])`, 'i');
+  const pattern = new RegExp(
+    `(?<![\\w-])@${escapeRegex(botUsername)}(?:\\[bot\\])?(?![\\w-])`,
+    'i',
+  );
   return pattern.test(body);
 }
 
