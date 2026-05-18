@@ -19,7 +19,7 @@ async function createAppJwt(): Promise<string> {
     .setProtectedHeader({ alg: 'RS256' })
     .setIssuer(env.GITHUB_APP_ID)
     .setIssuedAt(nowSeconds - 60)
-    .setExpirationTime(nowSeconds + 600)
+    .setExpirationTime(nowSeconds + 540)
     .sign(privateKey);
 }
 
@@ -49,9 +49,9 @@ export async function getInstallationToken(installationId: number): Promise<stri
   );
 
   if (!response.ok) {
-    const body = await response.text();
+    await response.text().catch(() => '');
     throw new Error(
-      `Installation token exchange failed: ${response.status} ${response.statusText} ${body}`,
+      `Installation token exchange failed: ${response.status} ${response.statusText}`,
     );
   }
 

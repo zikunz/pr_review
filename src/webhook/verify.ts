@@ -1,4 +1,4 @@
-const encoder = new TextEncoder();
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export async function verifyGitHubSignature(
   body: string,
@@ -11,30 +11,13 @@ export async function verifyGitHubSignature(
   if (!signatureHeader.startsWith(expectedPrefix)) return false;
 
   const providedHex = signatureHeader.slice(expectedPrefix.length);
-  const computedHex = await hmacSha256Hex(secret, body);
+  if (providedHex.length !== 64 || !/^[0-9a-f]+$/i.test(providedHex)) return false;
 
-  return timingSafeEqual(providedHex, computedHex);
-}
+  const computedHex = createHmac('sha256', secret).update(body, 'utf8').digest('hex');
 
-async function hmacSha256Hex(secret: string, message: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const macBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
-  return Array.from(new Uint8Array(macBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+  const providedBuf = Buffer.from(providedHex, 'hex');
+  const computedBuf = Buffer.from(computedHex, 'hex');
+  if (providedBuf.length !== computedBuf.length) return false;
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
+  return timingSafeEqual(providedBuf, computedBuf);
 }

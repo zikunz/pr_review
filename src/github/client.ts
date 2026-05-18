@@ -6,14 +6,15 @@ function authHeaders(token: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'pr-cascade',
   };
 }
 
 async function expectOk(response: Response, context: string): Promise<void> {
   if (response.ok) return;
-  const body = await response.text();
-  throw new Error(`${context} failed: ${response.status} ${response.statusText} ${body}`);
+  await response.text().catch(() => '');
+  throw new Error(`${context} failed: ${response.status} ${response.statusText}`);
 }
 
 export interface RepoCoordinates {
