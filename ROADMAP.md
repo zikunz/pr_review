@@ -104,6 +104,7 @@ In scope.
 - Idempotency via in memory map keyed by delivery ID, 24 hour TTL
 - Local file logging for traces
 - Triggers on `pull_request.opened`, `synchronize`, `reopened`
+- Manual re-trigger on `issue_comment.created` when the comment body contains the bot mention pattern (`@<bot-name> review`)
 - Deploy to Railway with `/health` endpoint
 
 Not in v0.1. Cascade, persona config, auto detection, agentic tools, repository wide context, verification, eval pipeline, frontend dashboard.
@@ -279,11 +280,11 @@ The author must complete the following manual setup before the bot operates.
    - Contents (read)
    - Metadata (read)
    - Pull requests (read and write)
-   - Issues (read and write, for v0.2 mention triggers)
+   - Issues (read and write, for mention triggers in v0.1)
    - Checks (read, for v0.2 CI log fetching)
 7. Subscribed events
    - Pull request
-   - Issue comment (v0.2)
+   - Issue comment (for v0.1 mention triggers)
    - Check run (v0.2)
 8. Generate private key, download as PEM, store as `GITHUB_APP_PRIVATE_KEY`
 9. Note the App ID, store as `GITHUB_APP_ID`
