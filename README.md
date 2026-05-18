@@ -1,12 +1,12 @@
 # PR Cascade
 
-> A GitHub Pull Request review agent that posts inline comments. Every LLM finding is checked against the actual diff before posting, so reviewers never see a comment about a line the PR did not touch. A three tier cost aware model cascade lands in v0.2.
+> A GitHub Pull Request review agent that posts inline comments. Every LLM finding is checked against the actual diff before posting, so reviewers never see a comment about a line the PR did not touch. A three-tier cost-aware model cascade ships in v0.2.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## What this is
+## Overview
 
 PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention in a PR comment for manual re-runs.
 
@@ -33,13 +33,13 @@ Return 202 Accepted, then async pipeline
 
 ## Why this exists
 
-Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade goes the other direction. The routing logic, sensors, prompts, and verification approach are all visible source. The repository doubles as a working tool and a reference for the engineering patterns that separate a demo from a production LLM application.
+Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade inverts that default. The routing logic, sensors, prompts, and verification approach are all in visible source.
 
 Three ideas drive the design.
 
-1. Verifiability over confidence. Every finding the bot posts has been checked against the unified diff that GitHub returned for the PR, so the bot cannot fabricate a comment about an untouched line. The model also reports its own confidence on every finding. Turning that self reported number into a probability that holds up against ground truth is the v0.3 frontier piece.
-2. Cost discipline. Each call writes a full token and cost ledger to the local trace file, and a per review cost cap stops one bad PR from running away. The v0.2 cascade keeps routine reviews on a small model and only escalates to a frontier model when the cheap tier is not confident.
-3. Transparency. Prompts, eval methodology, schemas, and trace data formats are open so anyone can reproduce or critique the approach.
+1. Verifiability over confidence. Every finding the bot posts has been checked against the unified diff that GitHub returned for the PR, so the bot cannot fabricate a comment about an untouched line. The model also reports its own confidence on every finding. Calibrating that self-reported number against ground truth is the v0.3 work.
+2. Cost discipline. Each call writes a full token and cost ledger to the local trace file, and a per-review cost cap stops a single PR from blowing the budget. The v0.2 cascade keeps routine reviews on a small model and only escalates to a frontier model when the cheap tier is not confident.
+3. Transparency. Prompts, schemas, and trace data formats are open so anyone can reproduce or critique the approach.
 
 ## Quickstart
 
@@ -56,13 +56,13 @@ npm run verify   # typecheck, lint, run every test
 npm run dev      # starts on http://localhost:3000
 ```
 
-To run end to end against a real PR, register a GitHub App, point its webhook at the public URL of your running instance (a `cloudflared tunnel` or `ngrok` over `localhost:3000` works locally), and install the App on a test repository. Production deployment uses Railway. The full registration checklist lives in [ROADMAP.md](./ROADMAP.md).
+To run end to end against a real PR, register a GitHub App, point its webhook at the public URL of your running instance (a `cloudflared` tunnel or `ngrok` pointed at `localhost:3000` works locally), and install the App on a test repository. Production deployment uses Railway. The full registration checklist lives in [ROADMAP.md](./ROADMAP.md).
 
 ## Tech stack
 
 - Runtime. Node 24 LTS with TypeScript strict
 - Framework. Hono via `@hono/node-server`. Hono was designed for Cloudflare Workers first, so the Workers migration in v0.4+ is a swap of the entry file and the trace sink, not a rewrite.
-- LLM inference. OpenAI API. Single `gpt-5.3-codex` call in v0.1, three tier cascade in v0.2.
+- LLM inference. OpenAI API. Single `gpt-5.3-codex` call in v0.1, three-tier cascade in v0.2.
 - Hosting. Railway for v0.1 through v0.3
 - Storage. In process map for idempotency in v0.1. SQLite or Postgres in later versions.
 - Lint and format. Biome 2.x

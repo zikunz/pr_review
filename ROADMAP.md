@@ -8,11 +8,11 @@ PR Cascade is a GitHub Pull Request review agent that demonstrates production en
 
 ## Why this exists
 
-Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade goes the other direction. The routing logic, sensors, prompts, and verification approach are all visible source. The repository doubles as a working tool and a reference for the engineering patterns that separate a demo from a production LLM application.
+Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade inverts that default. The routing logic, sensors, prompts, and verification approach are all in visible source. The repository is both a working tool and a reference implementation.
 
 Three ideas drive the design.
 
-1. Verifiability over confidence. Each finding carries a model declared confidence score today, and the bot already verifies that every claim references a line that exists in the diff. Calibration of the confidence score lands in v0.3 via tool based verification.
+1. Verifiability over confidence. Each finding carries a model-declared confidence score today, and the bot already verifies that every claim references a line that exists in the diff. Calibrating that confidence score against verification evidence is the v0.3 work.
 2. Cost discipline. Routine reviews stay on small open source models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
 3. Transparency. Prompts, eval methodology, and trace data formats are open so anyone can reproduce or critique the approach.
 
@@ -115,7 +115,7 @@ Adds production sense and configurability. Reuses v0.1 plumbing.
 
 New capabilities.
 
-1. **Cascade routing** across three tiers driven by complexity heuristics. Tier 1 handles small diffs and docs only changes. Tier 2 handles ordinary code changes. Tier 3 escalates only on sensor failure or low confidence.
+1. **Cascade routing** across three-tiers driven by complexity heuristics. Tier 1 handles small diffs and docs only changes. Tier 2 handles ordinary code changes. Tier 3 escalates only on sensor failure or low confidence.
 2. **Agentic tool use** via OpenAI function calling. Four tools.
    - `read_related_file(path)` for context outside the diff
    - `find_test_for(source_file)` to locate test files by naming convention
@@ -225,12 +225,12 @@ Honest classification of project components.
 | Langfuse observability with trace IDs | Engineering depth | Careful integration |
 | Eval flywheel with weekly trace review | Engineering depth | Best practice rarely executed |
 | Persona system with config and presets | Engineering depth | CodeRabbit has lighter version |
-| Agentic tool use across four tools | Frontier-ish (in OSS) | Closed source IDE agents reportedly do this internally. No public OSS code review bot publishes a reference implementation. |
-| **Tool based verification with calibrated confidence** | **Frontier** | No commercial bot publishes this. The differentiator. |
+| Agentic tool use across four tools | Frontier-ish (in OSS) | No public OSS code review bot we have surveyed publishes a four tool agentic implementation. |
+| Tool based verification with calibrated confidence | Frontier | No commercial bot we have surveyed publishes a tool based verification layer over LLM findings. This is the differentiator. |
 | Auto detect persona from repo signals | Frontier-ish | Unimplemented in commercial bots |
 | Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major AI safety teams |
 
-Project pitch (numbers filled in after v0.3 ships with measured data). PR Cascade is a production code review agent with tool based verification that aims to reduce LLM false positive rate against a measured v0.1 baseline, open sourced as a reference implementation.
+Summary (numbers filled in after v0.3 ships with measured data). PR Cascade is a production code review agent with tool based verification. It targets a measured false positive reduction against a v0.1 baseline.
 
 ## Risks and landmines
 
