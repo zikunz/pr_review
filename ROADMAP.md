@@ -45,7 +45,7 @@ This project explicitly does not do the following.
 | Observability (v0.2+) | Langfuse cloud free tier initially | Self host for v0.3 |
 | Package manager | npm | |
 
-Cloudflare Workers is an intentional v0.4 target. Hono itself was designed for Workers first, and the business logic in this repository does not depend on Node specific APIs outside the entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), and the dotenv loader (`src/env.ts`). The migration swaps those three files; the rest of the codebase ports unchanged.
+Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers first, and the business logic in this repository does not depend on Node-specific APIs outside four files: the entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), the dotenv loader (`src/env.ts`), and the HMAC verifier (`src/webhook/verify.ts`). The migration swaps those four files. The rest of the codebase ports unchanged.
 
 ## Architecture (v0.1)
 
@@ -200,7 +200,8 @@ Starting v0.3, auto detection runs when no config exists. README mentions hackat
 The first review in a newly installed repository opens with this card once persona config ships.
 
 ```
-First review in this repo. Defaulting to senior_engineer persona.
+First review in this repo. Defaulting to the senior_engineer preset
+(the same prompt v0.1 ships with: "senior software engineer").
 
 To customize, add .cascade.yml to your repo root with one of these presets.
   prototype | production | mentor | security_audit | concise

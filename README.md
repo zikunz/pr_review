@@ -67,7 +67,7 @@ To run end to end against a real PR, register a GitHub App, point its webhook at
 - Storage. In process map for idempotency in v0.1. SQLite or Postgres in later versions.
 - Lint and format. Biome 2.x
 - Test. Vitest 4.x
-- CI. GitHub Actions runs typecheck, lint, tests, and a gitleaks secret scan on every push.
+- CI. GitHub Actions runs typecheck, lint, tests, and a gitleaks secret scan on every push to `main` and every pull request.
 
 ## Status board
 

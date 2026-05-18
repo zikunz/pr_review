@@ -9,7 +9,7 @@ import {
   type RepoCoordinates,
 } from '@/github/client';
 import { isValidCommentLocation, parseDiffLocations } from '@/github/diff';
-import { type CostBreakdown, estimateCost } from '@/lib/cost';
+import { type CostBreakdown, CostCapExceededError, enforceCostCap, estimateCost } from '@/lib/cost';
 import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
 import { callReview } from '@/openai/review';
@@ -236,7 +236,10 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       return;
     }
 
-    if (cost.totalCents > env.COST_CAP_CENTS_PER_REVIEW) {
+    try {
+      enforceCostCap(cost.totalCents, env.COST_CAP_CENTS_PER_REVIEW);
+    } catch (err) {
+      if (!(err instanceof CostCapExceededError)) throw err;
       trace({
         event: 'review.cost_cap_exceeded',
         ...baseLog,
