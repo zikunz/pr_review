@@ -31,8 +31,20 @@ describe('estimateCost', () => {
 
   it('treats more cached than total tokens as a fully cached prompt', () => {
     const cost = estimateCost('gpt-5.3-codex', 1_000, 0, 5_000);
+    // 5_000 tokens at the $0.175/M cached rate = $0.000875 = 0.0875 cents.
     expect(cost.inputCents).toBe(0);
-    expect(cost.cachedInputCents).toBeCloseTo((5_000 * 0.175) / 10_000, 6);
+    expect(cost.cachedInputCents).toBeCloseTo(0.0875, 6);
+  });
+
+  it('bills input, output, and cached input simultaneously', () => {
+    const cost = estimateCost('gpt-5.3-codex', 12_345, 6_789, 4_000);
+    // fresh = 12345 - 4000 = 8345 input tokens at $1.75/M = $0.0146 = 1.4604 c
+    // 6789 output tokens at $14/M = $0.095 = 9.5046 c
+    // 4000 cached at $0.175/M = $0.0007 = 0.07 c
+    expect(cost.inputCents).toBeCloseTo(1.460375, 6);
+    expect(cost.outputCents).toBeCloseTo(9.5046, 6);
+    expect(cost.cachedInputCents).toBeCloseTo(0.07, 6);
+    expect(cost.totalCents).toBeCloseTo(11.034975, 6);
   });
 
   it('returns zero across the board for a zero token call', () => {
@@ -70,5 +82,6 @@ describe('enforceCostCap', () => {
     expect(thrown).toBeInstanceOf(CostCapExceededError);
     expect((thrown as CostCapExceededError).actualCents).toBe(30.01);
     expect((thrown as CostCapExceededError).capCents).toBe(30);
+    expect((thrown as CostCapExceededError).message).toContain('exceeds cap');
   });
 });

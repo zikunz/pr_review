@@ -39,15 +39,15 @@ describe('handlePullRequestEvent', () => {
     expect(result).toEqual({ status: 'accepted' });
   });
 
-  it('ignores actions outside the allowlist', () => {
+  it('ignores actions outside the allowlist with a reason that names the action', () => {
     const result = handlePullRequestEvent(basePr('edited', 1002), 'd-1002');
-    expect(result.status).toBe('ignored');
+    expect(result).toEqual({ status: 'ignored', reason: 'pr action edited' });
   });
 
-  it('ignores when installation is missing', () => {
+  it('ignores when installation is missing with an explanatory reason', () => {
     const payload = { ...basePr('opened', 1003), installation: undefined };
     const result = handlePullRequestEvent(payload, 'd-1003');
-    expect(result.status).toBe('ignored');
+    expect(result).toEqual({ status: 'ignored', reason: 'missing installation' });
   });
 
   it('treats a repeated delivery id as a duplicate', () => {
@@ -65,21 +65,28 @@ describe('handleIssueCommentEvent', () => {
     expect(result).toEqual({ status: 'accepted' });
   });
 
-  it('ignores comments on non-PR issues', () => {
+  it('ignores comments on non-PR issues with the correct reason', () => {
     const payload = baseComment('created', '@pr-cascade-bot ?', { onPr: false });
     const result = handleIssueCommentEvent(payload, 'd-ic-2');
-    expect(result.status).toBe('ignored');
+    expect(result).toEqual({ status: 'ignored', reason: 'comment not on a PR' });
   });
 
-  it('ignores comments that do not mention the bot', () => {
+  it('ignores comments that do not mention the bot with the correct reason', () => {
     const payload = baseComment('created', 'looks good to me');
     const result = handleIssueCommentEvent(payload, 'd-ic-3');
-    expect(result.status).toBe('ignored');
+    expect(result).toEqual({ status: 'ignored', reason: 'bot not mentioned' });
   });
 
-  it('ignores edits even with a mention', () => {
+  it('ignores edits even with a mention with a reason that names the action', () => {
     const payload = baseComment('edited', '@pr-cascade-bot please');
     const result = handleIssueCommentEvent(payload, 'd-ic-4');
-    expect(result.status).toBe('ignored');
+    expect(result).toEqual({ status: 'ignored', reason: 'issue_comment action edited' });
+  });
+
+  it('treats a repeated delivery id on the mention path as duplicate', () => {
+    const payload = baseComment('created', '@pr-cascade-bot dup');
+    const id = 'd-ic-duplicate';
+    handleIssueCommentEvent(payload, id);
+    expect(handleIssueCommentEvent(payload, id).status).toBe('duplicate');
   });
 });
