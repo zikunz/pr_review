@@ -3,6 +3,7 @@ import {
   fetchPullRequest,
   fetchPullRequestFiles,
   type InlineReviewComment,
+  type PullRequestFile,
   postPullRequestReview,
   type RepoCoordinates,
 } from '@/github/client';
@@ -12,6 +13,8 @@ import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
 import { callReview } from '@/openai/review';
 import type { Finding } from '@/openai/schema';
+
+type FileWithPatch = PullRequestFile & { patch: string };
 
 const idempotency = new IdempotencyStore();
 
@@ -106,6 +109,10 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function hasPatch(file: PullRequestFile): file is FileWithPatch {
+  return typeof file.patch === 'string' && file.patch.length > 0;
+}
+
 export function isBotMentioned(body: string, botUsername: string): boolean {
   const pattern = new RegExp(`@${escapeRegex(botUsername)}(?:\\[bot\\])?(?![\\w-])`, 'i');
   return pattern.test(body);
@@ -154,7 +161,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
     }
 
     const filesResult = await fetchPullRequestFiles(ctx.installationId, ctx.coords, ctx.prNumber);
-    const filesWithPatch = filesResult.files.filter((f) => f.patch);
+    const filesWithPatch = filesResult.files.filter(hasPatch);
     if (filesWithPatch.length === 0) {
       trace({
         event: 'review.skipped',
@@ -165,7 +172,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       return;
     }
 
-    const totalPatchChars = filesWithPatch.reduce((sum, f) => sum + (f.patch?.length ?? 0), 0);
+    const totalPatchChars = filesWithPatch.reduce((sum, f) => sum + f.patch.length, 0);
     if (totalPatchChars > MAX_PROMPT_DIFF_CHARS) {
       trace({
         event: 'review.skipped',
