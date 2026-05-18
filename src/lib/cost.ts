@@ -29,16 +29,21 @@ export function estimateCost(
   if (!pricing) {
     throw new Error(`No pricing registered for model: ${model}`);
   }
-  const freshInput = Math.max(0, inputTokens - cachedInputTokens);
-  const inputDollars = (freshInput * pricing.inputPerMillionTokensUsd) / 1_000_000;
-  const outputDollars = (outputTokens * pricing.outputPerMillionTokensUsd) / 1_000_000;
+  // OpenAI returns prompt_tokens as the full prompt count (cached + fresh).
+  // Subtract cached to bill the fresh portion at the standard rate and the
+  // cached portion at the cheaper rate.
+  const freshInputTokens = Math.max(0, inputTokens - cachedInputTokens);
   const cachedRate = pricing.cachedInputPerMillionTokensUsd ?? pricing.inputPerMillionTokensUsd;
-  const cachedDollars = (cachedInputTokens * cachedRate) / 1_000_000;
+
+  const inputCents = (freshInputTokens * pricing.inputPerMillionTokensUsd) / 10_000;
+  const outputCents = (outputTokens * pricing.outputPerMillionTokensUsd) / 10_000;
+  const cachedInputCents = (cachedInputTokens * cachedRate) / 10_000;
+
   return {
-    inputCents: inputDollars * 100,
-    outputCents: outputDollars * 100,
-    cachedInputCents: cachedDollars * 100,
-    totalCents: (inputDollars + outputDollars + cachedDollars) * 100,
+    inputCents,
+    outputCents,
+    cachedInputCents,
+    totalCents: inputCents + outputCents + cachedInputCents,
   };
 }
 

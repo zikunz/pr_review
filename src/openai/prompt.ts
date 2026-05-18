@@ -23,7 +23,7 @@ GUIDELINES
 - If unsure, lower confidence rather than omit.
 
 OUTPUT FORMAT
-Return JSON matching the provided schema. Each finding must reference a line that actually exists in the diff (the file name and the line number from the new file side). Maximum 5 findings per review unless the PR truly requires more.
+Return JSON matching the provided schema. Each finding must reference a line that actually exists in the diff (the file name and the line number from the new file side). Return at most five findings; prefer the five highest impact issues to a longer list of small ones.
 `;
 
 export interface PromptFile {
@@ -35,7 +35,7 @@ export function buildDiffMarkdown(files: PromptFile[]): string {
   const sections: string[] = [];
   for (const file of files) {
     if (!file.patch) continue;
-    sections.push(['### ' + file.filename, '```diff', file.patch, '```'].join('\n'));
+    sections.push([`### ${file.filename}`, '```diff', file.patch, '```'].join('\n'));
   }
   return sections.join('\n\n');
 }
