@@ -14,7 +14,8 @@ If you discover a security vulnerability, please report it responsibly.
 
 If GitHub private reporting is unavailable, contact the maintainer via the email listed on their GitHub profile with the subject line beginning `[SECURITY]`.
 
-You can expect.
+You can expect the following from maintainers.
+
 - Acknowledgment within 72 hours.
 - Initial status update within 7 days.
 - A fix and disclosure plan within 30 days for confirmed issues.

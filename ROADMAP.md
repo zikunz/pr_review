@@ -4,16 +4,16 @@ Canonical product spec for PR Cascade. Last updated 2026-05-18.
 
 ## Identity
 
-PR Cascade is a GitHub Pull Request review agent that demonstrates production engineering for LLM applications. It posts inline review comments, will run a model cascade for cost efficiency once v0.2 lands, and verifies that every proposed finding references a line that actually exists in the PR diff before posting.
+PR Cascade is a GitHub Pull Request review agent that demonstrates production engineering for LLM applications. It posts inline review comments and verifies every finding against the PR diff before posting. A model cascade for cost efficiency lands in v0.2.
 
 ## Why this exists
 
-Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade inverts that default. The routing logic, sensors, prompts, and verification approach are all in visible source. The repository is both a working tool and a reference implementation.
+Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade inverts that default. The routing logic, prompts, schemas, and verification approach are all in visible source. The repository is both a working tool and a reference implementation. Cascade routing and format-and-safety sensors land in v0.2.
 
 Three ideas drive the design.
 
-1. Verifiability over confidence. Each finding carries a model-declared confidence score today, and the bot already verifies that every claim references a line that exists in the diff. Calibrating that confidence score against verification evidence is the v0.3 work.
-2. Cost discipline. Routine reviews stay on small open source models. Escalation to frontier models happens only when sensors fail or routing confidence is low. The full cost ledger is logged for every review.
+1. Verifiability over confidence. Each finding carries a model-declared confidence score. The bot verifies that every claim references a line in the diff. Calibrating that confidence score against verification evidence is the v0.3 work.
+2. Cost discipline. The v0.2 cascade will keep routine reviews on a small model and escalate to a frontier model only when sensors fail or routing confidence is low. The cost ledger is logged for every review today.
 3. Transparency. Prompts, eval methodology, and trace data formats are open so anyone can reproduce or critique the approach.
 
 ## Non-goals
@@ -34,7 +34,7 @@ This project explicitly does not do the following.
 | Layer | Choice | Notes |
 |---|---|---|
 | Runtime | Node 24 LTS | Railway hosting for v0.1 through v0.3 |
-| Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later with one entry file swap |
+| Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file swap (entry, trace sink, dotenv loader, HMAC verifier) |
 | Language | TypeScript strict | No `any` without justification |
 | LLM (v0.1) | `gpt-5.3-codex` via OpenAI API | Verify current pricing at platform.openai.com before committing cost estimates |
 | LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.3-codex`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
@@ -45,7 +45,7 @@ This project explicitly does not do the following.
 | Observability (v0.2+) | Langfuse cloud free tier initially | Self host for v0.3 |
 | Package manager | npm | |
 
-Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers first, and the business logic in this repository does not depend on Node-specific APIs outside four files: the entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), the dotenv loader (`src/env.ts`), and the HMAC verifier (`src/webhook/verify.ts`). The migration swaps those four files. The rest of the codebase ports unchanged.
+Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers first. The business logic in this repository does not depend on Node-specific APIs outside four files. The entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), the dotenv loader (`src/env.ts`), and the HMAC verifier (`src/webhook/verify.ts`) swap as a group. The rest of the codebase ports unchanged.
 
 ## Architecture (v0.1)
 
@@ -62,7 +62,7 @@ verify HMAC SHA-256 in constant time
 parse JSON body and check idempotency on X-GitHub-Delivery
         │
         ▼
-return 202 Accepted promptly (well under the GitHub 10s budget)
+return 202 Accepted within the GitHub 10s budget
         │
         ▼
 async pipeline
@@ -97,7 +97,7 @@ In scope.
 - Webhook reception with HMAC verification and idempotency
 - GitHub App installation token authentication
 - Fetch PR metadata, files, and diff
-- Single `gpt-5.3-codex` call per-review with structured JSON output
+- Single `gpt-5.3-codex` call per review with structured JSON output
 - Single hardcoded persona named senior software engineer (matches the wording in `src/openai/prompt.ts`)
 - PR Review with inline comments via `line` plus `side` API
 - Per-review cost cap (default $0.30, configurable via `COST_CAP_CENTS_PER_REVIEW`). Reviews exceeding the cap are skipped and logged.
@@ -107,7 +107,7 @@ In scope.
 - Manual re-trigger on `issue_comment.created` when the comment body mentions the bot (any `@<bot-name>` mention, optionally followed by the `[bot]` suffix)
 - Deploy to Railway with `/health` endpoint
 
-Not in v0.1. Cascade, persona config, auto-detection, agentic tools, repository wide context, verification, eval pipeline, frontend dashboard.
+Not in v0.1. Cascade, persona config, auto-detection, agentic tools, repository-wide context, AST and tool-based verification, eval pipeline, frontend dashboard. Diff-line validation (the lightweight verification that ships in v0.1) is in scope above; v0.3 adds the deeper tool-based layer.
 
 ### v0.2 scope
 
@@ -226,12 +226,12 @@ Honest classification of project components.
 | Langfuse observability with trace IDs | Engineering depth | Careful integration |
 | Eval flywheel with weekly trace review | Engineering depth | Best practice rarely executed |
 | Persona system with config and presets | Engineering depth | CodeRabbit has lighter version |
-| Agentic tool use across four tools | Frontier-ish (in OSS) | No public OSS code review bot we have surveyed publishes a four tool agentic implementation. |
+| Agentic tool use across four tools | Frontier-ish (in OSS) | No public OSS code review bot we have surveyed publishes a four-tool agentic implementation. |
 | Tool-based verification with calibrated confidence | Frontier | No commercial bot we have surveyed publishes a tool-based verification layer over LLM findings. This is the differentiator. |
 | Auto-detect persona from repo signals | Frontier-ish | Unimplemented in commercial bots |
 | Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major AI safety teams |
 
-Summary (numbers filled in after v0.3 ships with measured data). PR Cascade is a production code review agent with tool-based verification. It targets a measured false-positive reduction against a v0.1 baseline.
+Summary, with concrete numbers added after v0.3 ships measured data. PR Cascade aims to be a production-grade code review agent. The v0.3 release adds tool-based verification and targets a measured false-positive reduction against the v0.1 baseline.
 
 ## Risks and landmines
 
@@ -243,7 +243,7 @@ Summary (numbers filled in after v0.3 ships with measured data). PR Cascade is a
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
 | OpenAI rate limit hit | Low | Rely on the SDK's retry semantics for transient 429 responses. Org-level rate and spend caps are the second line of defense. |
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per-review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per-repo and per-day caps planned in v0.2. |
-| Review post fails after LLM cost incurred | Medium | Cost and parsed output are written to the trace before the post call, so a failed post is diagnosable from local logs. Retry queue planned in v0.2. |
+| Review post fails after LLM cost incurred | Medium | A failed `postPullRequestReview` is logged as a `review.failed` trace event with the error message and duration. Cost and finding counts are captured only on the success path today; a pre-post `review.cost_settled` trace event is a v0.2 candidate. |
 | Force push leaves stale inline comments | Low | GitHub auto marks them outdated. No action required |
 | Persona config syntax error | Low | Strict Zod schema (planned with the v0.2 persona feature). Fall back to default and notify in review body. |
 | Spam findings on docs only or generated files | Medium | Path filter in default persona (planned with the v0.2 persona feature). The current v0.1 prompt asks the model to skip trivial findings. |
@@ -276,7 +276,7 @@ The author must complete the following manual setup before the bot operates.
    - Contents (read)
    - Metadata (read)
    - Pull requests (read and write)
-   - Issues (read and write, for mention triggers in v0.1)
+   - Issues (read, required to subscribe to `issue_comment` events for the mention trigger)
    - Checks (read, for v0.2 CI log fetching)
 7. Subscribed events
    - Pull request
@@ -291,7 +291,7 @@ The author must complete the following manual setup before the bot operates.
 2. Connect GitHub account
 3. Create new service from the pr_review repository main branch
 4. Set environment variables from `.env.example`
-5. Confirm the auto generated deployment URL (Railway returns something like `pr-cascade-production.up.railway.app`)
+5. Confirm the auto-generated deployment URL (Railway returns something like `pr-cascade-production.up.railway.app`)
 6. Update the GitHub App webhook URL to match
 
 ### OpenAI

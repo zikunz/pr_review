@@ -3,8 +3,8 @@
 > A GitHub Pull Request review agent that posts inline comments. Every LLM finding is checked against the actual diff before posting, so reviewers never see a comment about a line the PR did not touch. A three-tier cost-aware model cascade ships in v0.2.
 
 [![CI](https://github.com/zikunz/pr_review/actions/workflows/ci.yml/badge.svg)](https://github.com/zikunz/pr_review/actions/workflows/ci.yml)
-[![Node 24](https://img.shields.io/badge/node-24%20LTS-brightgreen)](.nvmrc)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Node 24](https://img.shields.io/badge/node-24%20LTS-brightgreen)](./.nvmrc)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 ---
 
@@ -35,12 +35,12 @@ Return 202 Accepted, then async pipeline
 
 ## Why this exists
 
-Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade inverts that default. The routing logic, sensors, prompts, and verification approach are all in visible source.
+Most automated code review tools treat the model as a black box and ship a single hardcoded provider. PR Cascade inverts that default. The routing logic, prompts, schemas, and verification approach are all in visible source.
 
 Three ideas drive the design.
 
 1. Verifiability over confidence. Every finding the bot posts has been checked against the unified diff that GitHub returned for the PR, so the bot cannot fabricate a comment about an untouched line. The model also reports its own confidence on every finding. Calibrating that self-reported number against ground truth is the v0.3 work.
-2. Cost discipline. Each call writes a full token and cost ledger to the local trace file, and a per-review cost cap stops a single PR from blowing the budget. The v0.2 cascade keeps routine reviews on a small model and only escalates to a frontier model when the cheap tier is not confident.
+2. Cost discipline. Each call writes a token and cost ledger to the local trace file. A per-review cost cap stops a single PR from exceeding the budget. The planned v0.2 cascade keeps routine reviews on a small model and escalates to a frontier model only when the lower tier reports low confidence.
 3. Transparency. Prompts, schemas, and trace data formats are open so anyone can reproduce or critique the approach.
 
 ## Quickstart
@@ -58,7 +58,7 @@ npm run verify   # typecheck, lint, run every test
 npm run dev      # starts on http://localhost:3000
 ```
 
-To run end to end against a real PR, register a GitHub App, point its webhook at the public URL of your running instance (a `cloudflared` tunnel or `ngrok` pointed at `localhost:3000` works locally), and install the App on a test repository. Production deployment uses Railway. The full registration checklist lives in [ROADMAP.md](./ROADMAP.md).
+To run end-to-end against a real PR, register a GitHub App and install it on a test repository. Point the App's webhook at the public URL of your running instance. A `cloudflared` tunnel or `ngrok` pointed at `localhost:3000` works locally. Production deployment uses Railway. The full registration checklist lives in [ROADMAP.md](./ROADMAP.md).
 
 ## Tech stack
 
@@ -92,6 +92,17 @@ To run end to end against a real PR, register a GitHub App, point its webhook at
 | LoRA distillation pipeline | Future (v0.4+) |
 | Cloudflare Workers migration | Future (v0.4+) |
 
+## Limitations
+
+- v0.1 keeps idempotency state in the process memory. A restart drops the cache; GitHub may redeliver a webhook seen before the restart and the bot will re-review.
+- Diffs whose patch content totals more than 200K characters are skipped (logged as `review.skipped` with reason `diff exceeds prompt size cap`). Per-file chunking is a v0.2 candidate.
+- The per-review cost cap stops the bot from posting a review whose cost exceeded the cap, but the LLM call has already completed by the time the cap is checked. Pre-flight cost estimation is a v0.2 candidate.
+- Cascade routing, persona config, agentic tool use, and the calibrated-confidence verifier are all roadmap items, not v0.1 features.
+
+## Security
+
+See [SECURITY.md](./SECURITY.md) for the vulnerability disclosure process and the maintainer practices that apply to this repository.
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](./LICENSE).

@@ -64,7 +64,7 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 ### TypeScript
 
 - `strict: true` always. No `any` without a comment justifying why.
-- Prefer types over interfaces for object shapes unless declaration merging is needed.
+- Either type aliases or interfaces are fine for object shapes. Prefer interfaces for exported public shapes (better hover output and declaration merging); prefer type aliases for unions, tuples, and Zod-inferred types.
 - Discriminated unions for sum types. Use `kind` or `type` as discriminator.
 - Path alias `@/*` maps to `src/*`. Use absolute imports from `@/` for cross-directory references.
 
@@ -164,7 +164,7 @@ These are non-negotiable. Any code suggestion or generated commit that violates 
 1. **No secrets in code or commits ever**. Even placeholder fake API keys should look obviously fake on inspection (for example, `your-api-key-here`).
 2. **HMAC and signature comparison must be constant-time**. Use `node:crypto` `timingSafeEqual` on equal-length Buffer inputs, or the Web Crypto `crypto.subtle` equivalent when running on Workers. Never `===`.
 3. **No real user data in test fixtures**. Synthetic only.
-4. **Conventional Commits for all commit messages**. See ROADMAP.md for cadence and message structure.
+4. **Conventional Commits for all commit messages**. The exact format and allowed types live in the `Conventional Commits` section below.
 5. **No `console.log` of prompts, API responses, or webhook bodies**. Use structured logging via observability layer.
 6. **No `as any` or `as unknown as T` without comment**. These are escape hatches that hide bugs.
 7. **No `--force` push on main branch**. Force-push on feature branches must use `--force-with-lease`.
