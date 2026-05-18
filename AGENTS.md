@@ -113,7 +113,7 @@ Biome handles import sorting automatically. Run `npm run format` before commit.
 
 ## File and directory structure (current v0.1)
 
-```
+```text
 pr_review/
 ├── src/
 │   ├── server.ts             Node entry, starts Hono on PORT
@@ -173,7 +173,7 @@ These are non-negotiable. Any code suggestion or generated commit that violates 
 
 ## Conventional Commits
 
-```
+```text
 <type>(<scope>): <imperative description under 72 chars>
 
 <optional body explaining why, wrapped at 72 chars>

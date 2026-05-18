@@ -2,6 +2,8 @@
 
 > A GitHub Pull Request review agent that posts inline comments. Every LLM finding is checked against the actual diff before posting, so reviewers never see a comment about a line the PR did not touch. A three-tier cost-aware model cascade ships in v0.2.
 
+[![CI](https://github.com/zikunz/pr_review/actions/workflows/ci.yml/badge.svg)](https://github.com/zikunz/pr_review/actions/workflows/ci.yml)
+[![Node 24](https://img.shields.io/badge/node-24%20LTS-brightgreen)](.nvmrc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -14,7 +16,7 @@ Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
 
 ## Architecture (v0.1)
 
-```
+```text
 GitHub PR event
         │
         ▼

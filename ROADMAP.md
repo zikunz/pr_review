@@ -49,7 +49,7 @@ Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers 
 
 ## Architecture (v0.1)
 
-```
+```text
 GitHub PR opened or synced
         │
         ▼
@@ -159,7 +159,7 @@ Not committed. Listed for direction.
 
 The default persona for v0.1 is senior software engineer. The full prompt lives in `src/openai/prompt.ts`. The summary below mirrors what the prompt enforces.
 
-```
+```text
 Focus     bugs, security, performance, API misuse, concurrency
 Ignore    style, naming, subjective architecture choices
 Tone      direct and constructive
@@ -199,7 +199,7 @@ Starting v0.3, auto-detection runs when no config exists. README mentions hackat
 
 The first review in a newly installed repository opens with this card once persona config ships.
 
-```
+```text
 First review in this repo. Defaulting to the senior_engineer preset
 (the same prompt v0.1 ships with: "senior software engineer").
 
