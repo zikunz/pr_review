@@ -1,6 +1,6 @@
 # Roadmap
 
-Canonical product spec for PR Cascade. Last updated 2026-05-18.
+Canonical product spec for PR Cascade. Last updated 2026-05-19.
 
 ## Identity
 
@@ -135,7 +135,7 @@ This is what differentiates the project from commercial bots and the only compon
 New capabilities.
 
 1. **AST parsing** via `tree-sitter`. For each finding, verify that the referenced line is the type of construct the LLM claims (function call, null deref, etc.).
-2. **Cross file symbol resolution** via lightweight import graph. Detect findings that reference non existent functions, classes, or types.
+2. **Cross-file symbol resolution** via lightweight import graph. Detect findings that reference non-existent functions, classes, or types.
 3. **Control flow heuristic**. Scan 30 lines preceding a proposed null deref for null guards. Detect optional chaining (`?.`), nullish coalescing, type narrowing patterns.
 4. **Test coverage signal**. Findings on lines exercised by tests get a confidence penalty.
 5. **Confidence aggregation**. Combine LLM stated confidence with verification evidence into final score. Findings below threshold (default 0.5) drop. Findings above 0.85 always post. Mid range tagged for human attention.
@@ -152,7 +152,7 @@ Not committed. Listed for direction.
 - LoRA fine-tune of Mistral 7B Instruct v0.2 on a self-collected, permissively licensed review dataset, served via Cloudflare Workers AI as the tier-1 router target
 - Migration of full stack to Cloudflare Workers when Startups credits arrive
 - Adversarial robustness study with prompt injection PR corpus and defensive sensor
-- Cross codebase pattern recognition via vector database of historical PR outcomes
+- Cross-codebase pattern recognition via vector database of historical PR outcomes
 - Verified execution via sandboxed test runs
 
 ## Personas and config
@@ -226,8 +226,8 @@ Honest classification of project components.
 | Langfuse observability with trace IDs | Engineering depth | Careful integration |
 | Eval flywheel with weekly trace review | Engineering depth | Best practice rarely executed |
 | Persona system with config and presets | Engineering depth | CodeRabbit has lighter version |
-| Agentic tool use across four tools | Frontier-ish (in OSS) | No public OSS code review bot we have surveyed publishes a four-tool agentic implementation. |
-| Tool-based verification with calibrated confidence | Frontier | No commercial bot we have surveyed publishes a tool-based verification layer over LLM findings. This is the differentiator. |
+| Agentic tool use across four tools | Frontier-ish (in OSS) | No public OSS code review bot surveyed for this project publishes a four-tool agentic implementation. |
+| Tool-based verification with calibrated confidence | Frontier | No commercial bot surveyed for this project publishes a tool-based verification layer over LLM findings. This is the differentiator. |
 | Auto-detect persona from repo signals | Frontier-ish | Unimplemented in commercial bots |
 | Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major AI safety teams |
 
@@ -297,7 +297,7 @@ The author must complete the following manual setup before the bot operates.
 ### OpenAI
 
 1. Confirm the OpenAI account has sufficient rate and spend limits for the expected webhook volume.
-2. Set a monthly organization budget hard cap appropriate for the projected load. The per-review cap in this repo defaults to thirty cents. The org-level cap is the second line of defense.
+2. Set a monthly organization budget hard cap appropriate for the projected load. The per-review cap in this repo defaults to $0.30. The org-level cap is the second line of defense.
 3. Generate an API key. Project keys with a model allowlist are recommended over organization keys.
 4. Store the key as `OPENAI_API_KEY`.
 
@@ -313,7 +313,7 @@ The author must complete the following manual setup before the bot operates.
 
 **Inline comment**. A review comment attached to a specific diff line, as opposed to a top level PR comment.
 
-**MCP**. Model Context Protocol. An open standard for connecting LLMs to external tools and data sources. The bot does not use MCP directly. The chat completions endpoint we use does not consume MCP servers, and the OpenAI Responses API path is reserved for a future iteration. The bot replicates the same capability via OpenAI function calling.
+**MCP**. Model Context Protocol. An open standard for connecting LLMs to external tools and data sources. The bot does not use MCP directly. The chat completions endpoint the bot uses does not consume MCP servers, and the OpenAI Responses API path is reserved for a future iteration. The bot replicates the same capability via OpenAI function calling.
 
 **Persona**. A predefined configuration of review focus, tone, and thresholds, mapped to a specific system prompt.
 
