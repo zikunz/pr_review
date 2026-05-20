@@ -124,6 +124,25 @@ describe('redactForTrace', () => {
     expect(out.kept).toBe('visible');
   });
 
+  it('does not redact camelCase plural-noun keys that just contain a sensitive substring', () => {
+    // `inputTokens` etc. are integer counts surfaced from the OpenAI usage
+    // payload, not secret strings. The previous unanchored regex over-matched
+    // them as "tokens" and replaced the integer value with [REDACTED], which
+    // erased real observability data in production traces.
+    const out = redactForTrace({
+      inputTokens: 1234,
+      outputTokens: 567,
+      cachedInputTokens: 89,
+      tokenizer: 'cl100k_base',
+      sessionId: 'public-abc',
+    }) as Record<string, unknown>;
+    expect(out.inputTokens).toBe(1234);
+    expect(out.outputTokens).toBe(567);
+    expect(out.cachedInputTokens).toBe(89);
+    expect(out.tokenizer).toBe('cl100k_base');
+    expect(out.sessionId).toBe('public-abc');
+  });
+
   it('converts a Date to an ISO string instead of an empty object', () => {
     const out = redactForTrace(new Date('2026-05-18T03:04:05.000Z'));
     expect(out).toBe('2026-05-18T03:04:05.000Z');
