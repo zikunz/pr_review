@@ -30,7 +30,14 @@ export function parseDiffLocations(files: FileDiff[]): CommentLocation[] {
 
       if (!insideHunk) continue;
       if (line.startsWith('\\')) continue;
-      if (line.startsWith('+++') || line.startsWith('---')) continue;
+      // Note. The file headers `--- a/path` and `+++ b/path` of a unified diff
+      // appear OUTSIDE any hunk and are already filtered by the `!insideHunk`
+      // check above. Inside a hunk, a line like `+++separator` is simply an
+      // added line whose content begins with `++`. A previous version of this
+      // function checked `line.startsWith('+++')` here and silently dropped
+      // those added lines from `locations`, which then caused
+      // `isValidCommentLocation` to reject any legitimate finding on such a
+      // line as if the model had hallucinated it.
 
       if (line.startsWith('+')) {
         locations.push({ file: file.path, line: newLine, side: 'RIGHT' });

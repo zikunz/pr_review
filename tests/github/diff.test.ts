@@ -85,6 +85,53 @@ describe('parseDiffLocations', () => {
     ]);
     expect(result).toEqual([{ file: 'a.ts', line: 2, side: 'RIGHT' }]);
   });
+
+  it('treats an added line whose content begins with ++ as a real added line', () => {
+    // A previous version of this parser dropped any in-hunk line that
+    // started with `+++` or `---`, mistaking added content like
+    // `+++separator` (one prefix `+` plus content `++separator`) for a
+    // file-header line. The model would then correctly identify a bug
+    // on that line and the verifier would reject the finding as if it
+    // had been hallucinated.
+    const result = parseDiffLocations([
+      {
+        path: 'docs/separators.md',
+        patch: [
+          '@@ -1,2 +1,4 @@',
+          ' header',
+          '+++separator',
+          '+normal line',
+          ' footer',
+        ].join('\n'),
+      },
+    ]);
+    expect(result).toEqual([
+      { file: 'docs/separators.md', line: 2, side: 'RIGHT' },
+      { file: 'docs/separators.md', line: 3, side: 'RIGHT' },
+    ]);
+  });
+
+  it('treats a removed line whose content begins with -- as a real removed line', () => {
+    // Symmetric counterpart of the +++ case. An in-hunk line like
+    // `---separator` means a removed line whose content begins with
+    // `--separator`. It should not move the new-side line counter and
+    // it should not appear in `locations` (removed lines never appear
+    // on the new side of the diff), which is the same outcome as any
+    // other `-` line.
+    const result = parseDiffLocations([
+      {
+        path: 'docs/separators.md',
+        patch: [
+          '@@ -1,3 +1,2 @@',
+          ' header',
+          '---separator',
+          '+new content',
+          ' footer',
+        ].join('\n'),
+      },
+    ]);
+    expect(result).toEqual([{ file: 'docs/separators.md', line: 2, side: 'RIGHT' }]);
+  });
 });
 
 describe('isValidCommentLocation', () => {
