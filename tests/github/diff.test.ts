@@ -96,13 +96,7 @@ describe('parseDiffLocations', () => {
     const result = parseDiffLocations([
       {
         path: 'docs/separators.md',
-        patch: [
-          '@@ -1,2 +1,4 @@',
-          ' header',
-          '+++separator',
-          '+normal line',
-          ' footer',
-        ].join('\n'),
+        patch: ['@@ -1,2 +1,4 @@', ' header', '+++separator', '+normal line', ' footer'].join('\n'),
       },
     ]);
     expect(result).toEqual([
@@ -121,13 +115,7 @@ describe('parseDiffLocations', () => {
     const result = parseDiffLocations([
       {
         path: 'docs/separators.md',
-        patch: [
-          '@@ -1,3 +1,2 @@',
-          ' header',
-          '---separator',
-          '+new content',
-          ' footer',
-        ].join('\n'),
+        patch: ['@@ -1,3 +1,2 @@', ' header', '---separator', '+new content', ' footer'].join('\n'),
       },
     ]);
     expect(result).toEqual([{ file: 'docs/separators.md', line: 2, side: 'RIGHT' }]);
