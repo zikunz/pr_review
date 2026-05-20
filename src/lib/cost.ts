@@ -5,10 +5,20 @@ export interface ModelPricing {
 }
 
 const PRICING: Record<string, ModelPricing> = {
-  'gpt-5.3-codex': {
-    inputPerMillionTokensUsd: 1.75,
-    outputPerMillionTokensUsd: 14,
-    cachedInputPerMillionTokensUsd: 0.175,
+  'gpt-5.4-mini': {
+    inputPerMillionTokensUsd: 0.75,
+    outputPerMillionTokensUsd: 4.5,
+    cachedInputPerMillionTokensUsd: 0.075,
+  },
+  'gpt-5.4': {
+    inputPerMillionTokensUsd: 2.5,
+    outputPerMillionTokensUsd: 15,
+    cachedInputPerMillionTokensUsd: 0.25,
+  },
+  'gpt-5.5': {
+    inputPerMillionTokensUsd: 5,
+    outputPerMillionTokensUsd: 30,
+    cachedInputPerMillionTokensUsd: 0.5,
   },
 };
 

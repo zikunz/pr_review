@@ -36,8 +36,8 @@ This project explicitly does not do the following.
 | Runtime | Node 24 LTS | Railway hosting for v0.1 through v0.3 |
 | Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file swap (entry, trace sink, dotenv loader, HMAC verifier) |
 | Language | TypeScript strict | No `any` without justification |
-| LLM (v0.1) | `gpt-5.3-codex` via OpenAI API | Verify current pricing at platform.openai.com before committing cost estimates |
-| LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.3-codex`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
+| LLM (v0.1) | `gpt-5.4-mini` via OpenAI API | The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`; verify pricing at platform.openai.com before committing cost estimates |
+| LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.4`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
 | Auth | GitHub App with JWT signed installation tokens | Standard pattern |
 | Lint and format | Biome 2.x | Single tool |
 | Test | Vitest 4.x | |
@@ -69,7 +69,7 @@ async pipeline
         │
    ┌────┴────┐
    │ fetch    │  GitHub App JWT → installation token → PR data, files, diff
-   │ analyze  │  build prompt → gpt-5.3-codex with response_format → Zod parse
+   │ analyze  │  build prompt → gpt-5.4-mini with response_format → Zod parse
    │ validate │  verify every finding line exists in diff
    │ post     │  Reviews API with line+side inline comments
    │ log      │  cost, duration, finding count to local trace file
@@ -97,7 +97,7 @@ In scope.
 - Webhook reception with HMAC verification and idempotency
 - GitHub App installation token authentication
 - Fetch PR metadata, files, and diff
-- Single `gpt-5.3-codex` call per review with structured JSON output
+- Single `gpt-5.4-mini` call per review with structured JSON output
 - Single hardcoded persona named senior software engineer (matches the wording in `src/openai/prompt.ts`)
 - PR Review with inline comments via `line` plus `side` API
 - Per-review cost cap (default $0.30, configurable via `COST_CAP_CENTS_PER_REVIEW`). Reviews exceeding the cap are skipped and logged.

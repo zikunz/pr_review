@@ -5,50 +5,52 @@ const PENNY = 1e-9;
 
 describe('estimateCost', () => {
   it('charges only the input rate when no tokens are cached', () => {
-    const cost = estimateCost('gpt-5.3-codex', 1_000_000, 0, 0);
-    expect(cost.inputCents).toBeCloseTo(175, 6);
+    // 1M tokens at $0.75/M = $0.75 = 75 cents.
+    const cost = estimateCost('gpt-5.4-mini', 1_000_000, 0, 0);
+    expect(cost.inputCents).toBeCloseTo(75, 6);
     expect(cost.outputCents).toBe(0);
     expect(cost.cachedInputCents).toBe(0);
-    expect(cost.totalCents).toBeCloseTo(175, 6);
+    expect(cost.totalCents).toBeCloseTo(75, 6);
   });
 
   it('charges the output rate per output token', () => {
-    const cost = estimateCost('gpt-5.3-codex', 0, 1_000_000, 0);
+    // 1M tokens at $4.50/M = $4.50 = 450 cents.
+    const cost = estimateCost('gpt-5.4-mini', 0, 1_000_000, 0);
     expect(cost.inputCents).toBe(0);
-    expect(cost.outputCents).toBeCloseTo(1400, 6);
+    expect(cost.outputCents).toBeCloseTo(450, 6);
     expect(cost.cachedInputCents).toBe(0);
-    expect(cost.totalCents).toBeCloseTo(1400, 6);
+    expect(cost.totalCents).toBeCloseTo(450, 6);
   });
 
   it('bills the cached portion at the cached rate and the fresh portion at the input rate', () => {
-    const cost = estimateCost('gpt-5.3-codex', 1_000_000, 0, 400_000);
-    // 600k fresh * $1.75 / 1M = $1.05 = 105c
-    // 400k cached * $0.175 / 1M = $0.07 = 7c
-    expect(cost.inputCents).toBeCloseTo(105, 6);
-    expect(cost.cachedInputCents).toBeCloseTo(7, 6);
-    expect(cost.totalCents).toBeCloseTo(112, 6);
+    const cost = estimateCost('gpt-5.4-mini', 1_000_000, 0, 400_000);
+    // 600k fresh at $0.75/M = $0.45 = 45c.
+    // 400k cached at $0.075/M = $0.03 = 3c.
+    expect(cost.inputCents).toBeCloseTo(45, 6);
+    expect(cost.cachedInputCents).toBeCloseTo(3, 6);
+    expect(cost.totalCents).toBeCloseTo(48, 6);
   });
 
   it('treats more cached than total tokens as a fully cached prompt', () => {
-    const cost = estimateCost('gpt-5.3-codex', 1_000, 0, 5_000);
-    // 5_000 tokens at the $0.175/M cached rate = $0.000875 = 0.0875 cents.
+    const cost = estimateCost('gpt-5.4-mini', 1_000, 0, 5_000);
+    // 5_000 tokens at the $0.075/M cached rate = $0.000375 = 0.0375 cents.
     expect(cost.inputCents).toBe(0);
-    expect(cost.cachedInputCents).toBeCloseTo(0.0875, 6);
+    expect(cost.cachedInputCents).toBeCloseTo(0.0375, 6);
   });
 
   it('bills input, output, and cached input simultaneously', () => {
-    const cost = estimateCost('gpt-5.3-codex', 12_345, 6_789, 4_000);
-    // fresh = 12345 - 4000 = 8345 input tokens at $1.75/M = $0.0146 = 1.4604 c
-    // 6789 output tokens at $14/M = $0.095 = 9.5046 c
-    // 4000 cached at $0.175/M = $0.0007 = 0.07 c
-    expect(cost.inputCents).toBeCloseTo(1.460375, 6);
-    expect(cost.outputCents).toBeCloseTo(9.5046, 6);
-    expect(cost.cachedInputCents).toBeCloseTo(0.07, 6);
-    expect(cost.totalCents).toBeCloseTo(11.034975, 6);
+    const cost = estimateCost('gpt-5.4-mini', 12_345, 6_789, 4_000);
+    // fresh = 12345 - 4000 = 8345 input tokens at $0.75/M = 0.625875 cents.
+    // 6789 output tokens at $4.50/M = 3.05505 cents.
+    // 4000 cached at $0.075/M = 0.03 cents.
+    expect(cost.inputCents).toBeCloseTo(0.625875, 6);
+    expect(cost.outputCents).toBeCloseTo(3.05505, 6);
+    expect(cost.cachedInputCents).toBeCloseTo(0.03, 6);
+    expect(cost.totalCents).toBeCloseTo(3.710925, 6);
   });
 
   it('returns zero across the board for a zero token call', () => {
-    const cost = estimateCost('gpt-5.3-codex', 0, 0, 0);
+    const cost = estimateCost('gpt-5.4-mini', 0, 0, 0);
     expect(cost.totalCents).toBe(0);
   });
 
@@ -56,8 +58,16 @@ describe('estimateCost', () => {
     expect(() => estimateCost('not-a-real-model', 100, 100, 0)).toThrow(/No pricing registered/);
   });
 
+  it('has pricing registered for every cascade tier model', () => {
+    // Each tier is exercised so a future pricing-table edit cannot drop a
+    // model without the test suite flagging it.
+    expect(() => estimateCost('gpt-5.4-mini', 1, 1, 0)).not.toThrow();
+    expect(() => estimateCost('gpt-5.4', 1, 1, 0)).not.toThrow();
+    expect(() => estimateCost('gpt-5.5', 1, 1, 0)).not.toThrow();
+  });
+
   it('total equals the sum of the three components', () => {
-    const cost = estimateCost('gpt-5.3-codex', 12_345, 6_789, 4_000);
+    const cost = estimateCost('gpt-5.4-mini', 12_345, 6_789, 4_000);
     const sum = cost.inputCents + cost.outputCents + cost.cachedInputCents;
     expect(Math.abs(cost.totalCents - sum)).toBeLessThan(PENNY);
   });

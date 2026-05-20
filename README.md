@@ -64,7 +64,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 
 - Runtime. Node 24 LTS with TypeScript strict
 - Framework. Hono via `@hono/node-server`. Hono was designed for Cloudflare Workers first, so the v0.4+ Workers migration is a swap of four files (entry, trace sink, dotenv loader, HMAC verifier), not a rewrite.
-- LLM inference. OpenAI API. Single `gpt-5.3-codex` call in v0.1, three-tier cascade in v0.2.
+- LLM inference. OpenAI API. Single `gpt-5.4-mini` call in v0.1, three-tier cascade in v0.2.
 - Hosting. Railway for v0.1 through v0.3
 - Storage. In-process map for idempotency in v0.1. SQLite or Postgres in later versions.
 - Lint and format. Biome 2.x

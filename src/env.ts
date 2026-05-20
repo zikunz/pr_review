@@ -34,7 +34,7 @@ const EnvSchema = z.object({
   GITHUB_WEBHOOK_SECRET: z.string().min(32),
   GITHUB_BOT_USERNAME: z.string().min(1).default('pr-cascade-bot'),
   OPENAI_API_KEY: z.string().startsWith('sk-'),
-  OPENAI_MODEL: z.string().min(1).default('gpt-5.3-codex'),
+  OPENAI_MODEL: z.string().min(1).default('gpt-5.4-mini'),
   COST_CAP_CENTS_PER_REVIEW: z.coerce.number().positive().default(30),
 });
 
