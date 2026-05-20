@@ -10,7 +10,7 @@
 
 ## Overview
 
-PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention in a PR comment for manual re-runs.
+PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
 
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
 
@@ -83,8 +83,8 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 | Idempotency store keyed on `X-GitHub-Delivery` with 24h TTL | Shipped (v0.1) |
 | Per-review cost cap with usage telemetry | Shipped (v0.1) |
 | JSON Lines trace logging | Shipped (v0.1) |
-| `@<bot-name>` mention re-trigger | Shipped (v0.1) |
-| Graceful shutdown on SIGTERM and SIGINT | Shipped (v0.1) |
+| `@<bot-name>` re-trigger from owners, members, and collaborators | Shipped (v0.1) |
+| Graceful shutdown drains in-flight reviews on SIGTERM and SIGINT | Shipped (v0.1) |
 | Three-tier cascade routing | Planned (v0.2) |
 | Agentic tool use (context fetch, library docs, CI logs) | Planned (v0.2) |
 | Persona system with `.cascade.yml` | Planned (v0.2) |
