@@ -1,6 +1,9 @@
 import { getInstallationToken } from './auth';
 
 const GITHUB_API = 'https://api.github.com';
+// Outbound calls to GitHub get a hard timeout so a stuck connection cannot
+// hold a review pipeline open forever.
+const FETCH_TIMEOUT_MS = 30_000;
 
 function authHeaders(token: string): Record<string, string> {
   return {
@@ -47,7 +50,7 @@ export async function fetchPullRequest(
   const token = await getInstallationToken(installationId);
   const response = await fetch(
     `${GITHUB_API}/repos/${coords.owner}/${coords.repo}/pulls/${pullNumber}`,
-    { headers: authHeaders(token) },
+    { headers: authHeaders(token), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
   );
   await expectOk(response, 'fetchPullRequest');
   return (await response.json()) as PullRequestSummary;
@@ -72,7 +75,7 @@ export async function fetchPullRequestFiles(
   while (true) {
     const response = await fetch(
       `${GITHUB_API}/repos/${coords.owner}/${coords.repo}/pulls/${pullNumber}/files?per_page=100&page=${page}`,
-      { headers: authHeaders(token) },
+      { headers: authHeaders(token), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
     );
     await expectOk(response, 'fetchPullRequestFiles');
     const batch = (await response.json()) as PullRequestFile[];
@@ -126,6 +129,7 @@ export async function postPullRequestReview(
       method: 'POST',
       headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     },
   );
   await expectOk(response, 'postPullRequestReview');
@@ -145,6 +149,7 @@ export async function postIssueComment(
       method: 'POST',
       headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
       body: JSON.stringify({ body }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     },
   );
   await expectOk(response, 'postIssueComment');

@@ -2,6 +2,11 @@ import { createPrivateKey, type KeyObject } from 'node:crypto';
 import { SignJWT } from 'jose';
 import { getEnv } from '@/env';
 
+// Outbound calls to GitHub get a hard timeout. Without this a hung connection
+// would pin a KeyObject, a fetch promise, and an inflight-coalescer entry for
+// the lifetime of the container.
+const FETCH_TIMEOUT_MS = 30_000;
+
 let cachedPrivateKey: KeyObject | undefined;
 const installationTokenCache = new Map<number, { token: string; expiresAtMs: number }>();
 const installationTokenInflight = new Map<number, Promise<string>>();
@@ -46,6 +51,7 @@ async function mintInstallationToken(installationId: number): Promise<string> {
         Accept: 'application/vnd.github+json',
         'User-Agent': 'pr-cascade',
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     },
   );
 

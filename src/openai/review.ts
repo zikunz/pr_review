@@ -11,7 +11,11 @@ let cachedClient: OpenAI | undefined;
 function client(): OpenAI {
   if (cachedClient) return cachedClient;
   const env = getEnv();
-  cachedClient = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  // Explicit 60s ceiling so a slow OpenAI response cannot pin a review
+  // promise for the lifetime of the container. The SDK's default has
+  // shifted across versions, so set it here rather than rely on whatever
+  // ships.
+  cachedClient = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 60_000 });
   return cachedClient;
 }
 
