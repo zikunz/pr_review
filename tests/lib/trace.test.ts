@@ -209,6 +209,23 @@ describe('redactForTrace', () => {
     expect(out).toBe('config error: [REDACTED]');
   });
 
+  it('redacts a full-length GitHub personal access token', () => {
+    const out = redactForTrace('auth header had ghp_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII inside');
+    expect(out).toBe('auth header had [REDACTED] inside');
+  });
+
+  it('redacts a GitHub OAuth token', () => {
+    const out = redactForTrace('OAuth: gho_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII');
+    expect(out).toBe('OAuth: [REDACTED]');
+  });
+
+  it('redacts a GitHub fine-grained personal access token', () => {
+    const out = redactForTrace(
+      'PAT github_pat_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLL trailing',
+    );
+    expect(out).toBe('PAT [REDACTED] trailing');
+  });
+
   it('does not touch innocuous strings that just contain sk- or ghp_ as substring', () => {
     expect(redactForTrace('sk-mini test fixture')).toBe('sk-mini test fixture');
     expect(redactForTrace('ghp_short')).toBe('ghp_short');
