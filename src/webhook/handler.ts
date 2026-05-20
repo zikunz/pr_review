@@ -346,8 +346,19 @@ function formatFinding(f: Finding): string {
 }
 
 function formatReviewBody(summary: string, total: number, posted: number): string {
+  // The model controls `summary` the same way it controls each finding's
+  // message, so apply the same escape chain `formatFinding` uses. Without
+  // this, a prompt-injected PR description can elicit a model summary
+  // containing a Markdown link or image and the bot posts it under its own
+  // identity.
+  const safeSummary = summary
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]');
   const dropped = total - posted;
-  const lines = [summary];
+  const lines = [safeSummary];
   if (dropped > 0) {
     lines.push('');
     const suffix = dropped === 1 ? '' : 's';
