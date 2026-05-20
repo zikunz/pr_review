@@ -38,7 +38,11 @@ function basePr(action: string, prNumber: number) {
   };
 }
 
-function baseComment(action: string, body: string, opts?: { onPr?: boolean }) {
+function baseComment(
+  action: string,
+  body: string,
+  opts?: { onPr?: boolean; authorAssociation?: string },
+) {
   return {
     action,
     installation: { id: 1 },
@@ -47,7 +51,11 @@ function baseComment(action: string, body: string, opts?: { onPr?: boolean }) {
       number: 7,
       ...(opts?.onPr === false ? {} : { pull_request: { url: 'x' } }),
     },
-    comment: { id: 100, body },
+    comment: {
+      id: 100,
+      body,
+      author_association: opts?.authorAssociation ?? 'OWNER',
+    },
   };
 }
 
@@ -106,5 +114,32 @@ describe('handleIssueCommentEvent', () => {
     const id = 'd-ic-duplicate';
     handleIssueCommentEvent(payload, id);
     expect(handleIssueCommentEvent(payload, id).status).toBe('duplicate');
+  });
+
+  it('ignores a mention from a commenter without write access', () => {
+    const payload = baseComment('created', '@pr-cascade-bot please', {
+      authorAssociation: 'NONE',
+    });
+    const result = handleIssueCommentEvent(payload, 'd-ic-author-none');
+    expect(result).toEqual({
+      status: 'ignored',
+      reason: 'comment author association NONE',
+    });
+  });
+
+  it('accepts a mention from a collaborator', () => {
+    const payload = baseComment('created', '@pr-cascade-bot please', {
+      authorAssociation: 'COLLABORATOR',
+    });
+    const result = handleIssueCommentEvent(payload, 'd-ic-author-collab');
+    expect(result).toEqual({ status: 'accepted' });
+  });
+
+  it('accepts a mention from a member of the owning org', () => {
+    const payload = baseComment('created', '@pr-cascade-bot please', {
+      authorAssociation: 'MEMBER',
+    });
+    const result = handleIssueCommentEvent(payload, 'd-ic-author-member');
+    expect(result).toEqual({ status: 'accepted' });
   });
 });

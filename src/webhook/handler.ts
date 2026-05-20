@@ -46,9 +46,19 @@ export const IssueCommentPayload = z.object({
     number: z.number().int().positive(),
     pull_request: z.unknown().optional(),
   }),
-  comment: z.object({ id: z.number().int(), body: z.string() }),
+  comment: z.object({
+    id: z.number().int(),
+    body: z.string(),
+    author_association: z.string().min(1),
+  }),
 });
 export type IssueCommentPayload = z.infer<typeof IssueCommentPayload>;
+
+// Only commenters with write access can re-trigger a review via @mention.
+// Anyone with read access can comment on a public PR, so without this gate a
+// drive-by attacker could burn the cost cap one review at a time by spamming
+// `@<bot-name>` mentions.
+const ALLOWED_COMMENT_AUTHOR_ASSOCIATIONS = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 
 export type DispatchResult =
   | { status: 'accepted' }
@@ -99,6 +109,12 @@ export function handleIssueCommentEvent(
   const env = getEnv();
   if (!isBotMentioned(payload.comment.body, env.GITHUB_BOT_USERNAME)) {
     return { status: 'ignored', reason: 'bot not mentioned' };
+  }
+  if (!ALLOWED_COMMENT_AUTHOR_ASSOCIATIONS.has(payload.comment.author_association)) {
+    return {
+      status: 'ignored',
+      reason: `comment author association ${payload.comment.author_association}`,
+    };
   }
   if (idempotency.has(deliveryId)) return { status: 'duplicate' };
   idempotency.remember(deliveryId);
