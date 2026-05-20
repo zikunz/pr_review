@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { app } from '@/app';
 import { getEnv } from '@/env';
+import { drainInFlightReviews } from '@/webhook/handler';
 
 const env = getEnv();
 
@@ -10,34 +11,48 @@ const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' }, 
 
 let shuttingDown = false;
 
-function shutdown(signal: string): void {
+async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) {
     console.error(`received ${signal} during shutdown, forcing exit`);
     process.exit(1);
   }
   shuttingDown = true;
   console.log(`received ${signal}, draining`);
-  server.close((err) => {
-    if (err) {
-      console.error('graceful shutdown failed', err.message);
-      process.exit(1);
-    }
-    process.exit(0);
-  });
+
+  // Hard ceiling so a stuck review or a stuck socket cannot block exit
+  // indefinitely. Ten seconds is below the Railway grace period and below
+  // the typical PaaS per-deploy stop budget.
   setTimeout(() => {
     console.error('forced exit after 10s drain timeout');
     process.exit(1);
   }, 10_000).unref();
+
+  const httpClosed = new Promise<void>((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+
+  try {
+    await Promise.all([httpClosed, drainInFlightReviews()]);
+    process.exit(0);
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error('graceful shutdown failed', reason);
+    process.exit(1);
+  }
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
 // Node 24 treats both as fatal by default. Surface the cause, then drain.
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException', err);
-  shutdown('uncaughtException');
+  void shutdown('uncaughtException');
 });
 process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection', reason);
-  shutdown('unhandledRejection');
+  void shutdown('unhandledRejection');
 });

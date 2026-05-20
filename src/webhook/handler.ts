@@ -158,8 +158,14 @@ interface ReviewContext {
   triggerEvent: string;
 }
 
+// Track fire-and-forget review promises so the shutdown path can wait for
+// them to settle before the process exits. Without this, a SIGTERM during a
+// Railway redeploy drops every in-flight review silently, leaving the
+// originating PR with no bot comment.
+const inFlightReviews = new Set<Promise<unknown>>();
+
 function scheduleReview(ctx: ReviewContext): void {
-  runReview(ctx).catch((err) => {
+  const promise = runReview(ctx).catch((err) => {
     const reason = err instanceof Error ? err.message : String(err);
     trace({
       event: 'review.unhandled_error',
@@ -170,6 +176,22 @@ function scheduleReview(ctx: ReviewContext): void {
       error: reason,
     });
   });
+  inFlightReviews.add(promise);
+  promise.finally(() => {
+    inFlightReviews.delete(promise);
+  });
+}
+
+// Resolve once every currently-scheduled review has settled. The shutdown
+// path in `src/server.ts` awaits this in parallel with `server.close` so the
+// HTTP listener stops accepting new requests at the same time the existing
+// reviews finish posting back to GitHub.
+export async function drainInFlightReviews(): Promise<void> {
+  await Promise.allSettled([...inFlightReviews]);
+}
+
+export function inFlightReviewCount(): number {
+  return inFlightReviews.size;
 }
 
 async function runReview(ctx: ReviewContext): Promise<void> {

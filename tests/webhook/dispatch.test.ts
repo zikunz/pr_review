@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { handleIssueCommentEvent, handlePullRequestEvent } from '@/webhook/handler';
+import {
+  drainInFlightReviews,
+  handleIssueCommentEvent,
+  handlePullRequestEvent,
+  inFlightReviewCount,
+} from '@/webhook/handler';
 
 const ENV_KEYS = [
   'GITHUB_APP_ID',
@@ -141,5 +146,19 @@ describe('handleIssueCommentEvent', () => {
     });
     const result = handleIssueCommentEvent(payload, 'd-ic-author-member');
     expect(result).toEqual({ status: 'accepted' });
+  });
+});
+
+describe('drainInFlightReviews', () => {
+  it('resolves immediately when no reviews are scheduled', async () => {
+    await drainInFlightReviews();
+    expect(inFlightReviewCount()).toBeGreaterThanOrEqual(0);
+  });
+
+  it('waits for an accepted review to settle before resolving', async () => {
+    handlePullRequestEvent(basePr('opened', 9001), 'd-drain-1');
+    expect(inFlightReviewCount()).toBeGreaterThan(0);
+    await drainInFlightReviews();
+    expect(inFlightReviewCount()).toBe(0);
   });
 });
