@@ -18,8 +18,12 @@ export interface TraceRecord {
   details?: Record<string, unknown>;
 }
 
+// Anchored so that the key either matches a sensitive name in full
+// (case-insensitive) or ends with a sensitive suffix preceded by `_` or `-`.
+// The previous unanchored regex matched any substring and over-redacted
+// fields like `inputTokens` (a token count, not a secret).
 const SENSITIVE_KEY_PATTERN =
-  /token|secret|authorization|password|api[_-]?key|cookie|bearer|credential|private[_-]?key|signing|jwt|session|passphrase|x-hub-signature/i;
+  /^(token|secret|authorization|password|cookie|bearer|credential|signing|jwt|session|passphrase|api[_-]?key|private[_-]?key|x-hub-signature)$|(?:^|[_-])(token|secret|key|password|credential|signature|cookie|bearer)$/i;
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
 const MAX_STRING_CHARS = 4000;
