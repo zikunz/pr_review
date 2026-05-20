@@ -24,6 +24,12 @@ export interface TraceRecord {
 // fields like `inputTokens` (a token count, not a secret).
 const SENSITIVE_KEY_PATTERN =
   /^(token|secret|authorization|password|cookie|bearer|credential|signing|jwt|session|passphrase|api[_-]?key|private[_-]?key|x-hub-signature)$|(?:^|[_-])(token|secret|key|password|credential|signature|cookie|bearer)$/i;
+// Match secret-shaped substrings inside string values, not just keys. OpenAI
+// SDK errors and GitHub API errors occasionally echo parts of the request
+// (URLs, headers, response bodies) into the message, and that text would land
+// in the trace file and stdout verbatim if we only redact object keys.
+const SECRET_VALUE_PATTERN =
+  /sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9]{36,}|gho_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]+?-----END [A-Z ]+PRIVATE KEY-----/g;
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
 const MAX_STRING_CHARS = 4000;
@@ -32,6 +38,7 @@ const MAX_STRING_CHARS = 4000;
 // future caller passing an error envelope or a raw HTTP response could put a
 // credential here. The redactor:
 //   - strips keys whose names suggest secrets
+//   - pattern-matches secret-shaped substrings inside string values
 //   - caps recursion depth so cyclic shapes do not stack overflow
 //   - truncates raw strings
 //   - converts well known object types (Date, Error, RegExp, Map, Set, Buffer)
@@ -42,8 +49,11 @@ export function redactForTrace(value: unknown, depth = 0): unknown {
   if (depth > MAX_DEPTH) return REDACTED;
 
   switch (typeof value) {
-    case 'string':
-      return value.length > MAX_STRING_CHARS ? `${value.slice(0, MAX_STRING_CHARS)}…` : value;
+    case 'string': {
+      const truncated =
+        value.length > MAX_STRING_CHARS ? `${value.slice(0, MAX_STRING_CHARS)}…` : value;
+      return truncated.replace(SECRET_VALUE_PATTERN, REDACTED);
+    }
     case 'bigint':
       return `${value.toString()}n`;
     case 'function':

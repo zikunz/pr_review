@@ -191,4 +191,26 @@ describe('redactForTrace', () => {
     const out = redactForTrace({ token: Buffer.from('secret') }) as { token: unknown };
     expect(out.token).toBe('[REDACTED]');
   });
+
+  it('redacts an OpenAI key embedded inside a string value', () => {
+    const out = redactForTrace('Error: invalid api key sk-proj-abc123XYZ_DEFghijklmnop');
+    expect(out).toBe('Error: invalid api key [REDACTED]');
+  });
+
+  it('redacts a GitHub installation token embedded in an error message', () => {
+    const out = redactForTrace('Authorization: Bearer ghs_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII');
+    expect(out).toBe('Authorization: Bearer [REDACTED]');
+  });
+
+  it('redacts a PEM block embedded in a string', () => {
+    const pem =
+      '-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQDc...\n-----END RSA PRIVATE KEY-----';
+    const out = redactForTrace(`config error: ${pem}`);
+    expect(out).toBe('config error: [REDACTED]');
+  });
+
+  it('does not touch innocuous strings that just contain sk- or ghp_ as substring', () => {
+    expect(redactForTrace('sk-mini test fixture')).toBe('sk-mini test fixture');
+    expect(redactForTrace('ghp_short')).toBe('ghp_short');
+  });
 });
