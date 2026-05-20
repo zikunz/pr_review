@@ -1,6 +1,6 @@
 # Roadmap
 
-Canonical product spec for PR Cascade. Last updated 2026-05-19.
+Canonical product spec for PR Cascade. Last updated 2026-05-20.
 
 ## Identity
 
@@ -36,7 +36,7 @@ This project explicitly does not do the following.
 | Runtime | Node 24 LTS | Railway hosting for v0.1 through v0.3 |
 | Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file swap (entry, trace sink, dotenv loader, HMAC verifier) |
 | Language | TypeScript strict | No `any` without justification |
-| LLM (v0.1) | `gpt-5.4-mini` via OpenAI API | The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`; verify pricing at platform.openai.com before committing cost estimates |
+| LLM (v0.1) | `gpt-5.4-mini` via OpenAI API | The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`. Verify pricing at platform.openai.com before committing cost estimates |
 | LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.4`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
 | Auth | GitHub App with JWT signed installation tokens | Standard pattern |
 | Lint and format | Biome 2.x | Single tool |
@@ -107,7 +107,7 @@ In scope.
 - Manual re-trigger on `issue_comment.created` when the comment body mentions the bot (any `@<bot-name>` mention, optionally followed by the `[bot]` suffix)
 - Deploy to Railway with `/health` endpoint
 
-Not in v0.1. Cascade, persona config, auto-detection, agentic tools, repository-wide context, AST and tool-based verification, eval pipeline, frontend dashboard. Diff-line validation (the lightweight verification that ships in v0.1) is in scope above; v0.3 adds the deeper tool-based layer.
+Not in v0.1. Cascade, persona config, auto-detection, agentic tools, repository-wide context, AST and tool-based verification, eval pipeline, frontend dashboard. Diff-line validation (the lightweight verification that ships in v0.1) is in scope above. v0.3 adds the deeper tool-based layer.
 
 ### v0.2 scope
 
@@ -164,7 +164,7 @@ Focus     bugs, security, performance, API misuse, concurrency
 Ignore    style, naming, subjective architecture choices
 Tone      direct and constructive
 Findings  schema caps the array at five, prompt asks the model to prefer quality over quantity
-Threshold the model assigns a confidence per finding; a post side threshold lands in v0.2
+Threshold the model assigns a confidence per finding. A post side threshold lands in v0.2
 ```
 
 Starting v0.2 (planned), users override via `.cascade.yml` in the repo root.
@@ -237,13 +237,13 @@ Summary, with concrete numbers added after v0.3 ships measured data. PR Cascade 
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Diff exceeds context window | Medium | Total patch character count is capped (`MAX_PROMPT_DIFF_CHARS = 200_000` in `src/webhook/handler.ts`); reviews above the cap are skipped and logged. Per file chunking is a v0.2 candidate. |
+| Diff exceeds context window | Medium | Total patch character count is capped (`MAX_PROMPT_DIFF_CHARS = 200_000` in `src/webhook/handler.ts`). Reviews above the cap are skipped and logged. Per file chunking is a v0.2 candidate. |
 | Webhook duplicate delivery | High | Idempotency map keyed on `X-GitHub-Delivery` with 24 hour TTL |
 | GitHub App private key leak | Critical | Stored as Railway secret. Never in repo. Daily git history scan via gitleaks. Rotation plan if exposed |
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
 | OpenAI rate limit hit | Low | Rely on the SDK's retry semantics for transient 429 responses. Org-level rate and spend caps are the second line of defense. |
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per-review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per-repo and per-day caps planned in v0.2. |
-| Review post fails after LLM cost incurred | Medium | A failed `postPullRequestReview` is logged as a `review.failed` trace event with the error message and duration. Cost and finding counts are captured only on the success path today; a pre-post `review.cost_settled` trace event is a v0.2 candidate. |
+| Review post fails after LLM cost incurred | Medium | A failed `postPullRequestReview` is logged as a `review.failed` trace event with the error message and duration. Cost and finding counts are captured only on the success path today. A pre-post `review.cost_settled` trace event is a v0.2 candidate. |
 | Force push leaves stale inline comments | Low | GitHub auto marks them outdated. No action required |
 | Persona config syntax error | Low | Strict Zod schema (planned with the v0.2 persona feature). Fall back to default and notify in review body. |
 | Spam findings on docs only or generated files | Medium | Path filter in default persona (planned with the v0.2 persona feature). The current v0.1 prompt asks the model to skip trivial findings. |

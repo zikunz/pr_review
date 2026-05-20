@@ -94,7 +94,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 
 ## Limitations
 
-- v0.1 keeps idempotency state in the process memory. A restart drops the cache; GitHub may redeliver a webhook seen before the restart and the bot will re-review.
+- v0.1 keeps idempotency state in the process memory. A restart drops the cache. GitHub may redeliver a webhook seen before the restart and the bot will re-review.
 - Diffs whose patch content totals more than 200K characters are skipped (logged as `review.skipped` with reason `diff exceeds prompt size cap`). Per-file chunking is a v0.2 candidate.
 - The per-review cost cap stops the bot from posting a review whose cost exceeds the cap, but the LLM call has already completed by the time the cap is checked. Pre-flight cost estimation is a v0.2 candidate.
 - Cascade routing, persona config, agentic tool use, and the calibrated-confidence verifier are all roadmap items, not v0.1 features.

@@ -199,9 +199,9 @@ Common scopes are the top level source directories (`webhook`, `github`, `openai
 
 ## Things this project explicitly does not do
 
-- Multi-agent collaboration architectures. We use a cascade (sequential, deterministic) not multi-agent (parallel, coordinated).
+- Multi-agent collaboration architectures. The project uses a cascade (sequential, deterministic) not multi-agent (parallel, coordinated).
 - LangChain or LangGraph wrappers. Direct API calls everywhere.
-- Custom inference serving infrastructure. We rely on managed LLM APIs for v0.1 through v0.3.
+- Custom inference serving infrastructure. The project relies on managed LLM APIs for v0.1 through v0.3.
 - General-purpose chatbot interface. The system is event-driven only (GitHub webhooks).
 - Mock LLM responses in unit tests. Tests cover deterministic logic (HMAC, diff parsing, idempotency, route dispatch). LLM calls are exercised through end-to-end smoke tests on real PRs.
 
