@@ -165,21 +165,39 @@ interface ReviewContext {
 const inFlightReviews = new Set<Promise<unknown>>();
 
 function scheduleReview(ctx: ReviewContext): void {
-  const promise = runReview(ctx).catch((err) => {
+  const promise: Promise<void> = runReview(ctx).catch((err) => {
     const reason = err instanceof Error ? err.message : String(err);
-    trace({
-      event: 'review.unhandled_error',
-      deliveryId: ctx.deliveryId,
-      repoFullName: `${ctx.coords.owner}/${ctx.coords.repo}`,
-      prNumber: ctx.prNumber,
-      status: 'failed',
-      error: reason,
-    });
+    try {
+      trace({
+        event: 'review.unhandled_error',
+        deliveryId: ctx.deliveryId,
+        repoFullName: `${ctx.coords.owner}/${ctx.coords.repo}`,
+        prNumber: ctx.prNumber,
+        status: 'failed',
+        error: reason,
+      });
+    } catch {
+      // Swallow trace failures (for example a stdout EPIPE during a
+      // platform-driven shutdown). Surfacing them as an unhandled
+      // rejection here would re-enter `shutdown` via the
+      // `unhandledRejection` handler in `src/server.ts`, see
+      // `shuttingDown === true`, and force-exit while other reviews are
+      // still draining.
+    }
   });
   inFlightReviews.add(promise);
-  promise.finally(() => {
-    inFlightReviews.delete(promise);
-  });
+  promise
+    .finally(() => {
+      inFlightReviews.delete(promise);
+    })
+    .catch(() => {
+      // `Promise.prototype.finally` re-throws any rejection from the
+      // upstream promise. The catch handler above already absorbed the
+      // review error, so the only way this path triggers is if the catch
+      // handler itself threw an exception that escaped its own
+      // try/catch. Swallow here to keep the cleanup chain from raising
+      // an unhandled rejection that would take the whole process down.
+    });
 }
 
 // Resolve once every currently-scheduled review has settled. The shutdown

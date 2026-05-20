@@ -32,7 +32,15 @@ async function shutdown(signal: string): Promise<void> {
   });
 
   try {
-    await Promise.all([httpClosed, drainInFlightReviews()]);
+    // Drain the HTTP listener first, then snapshot in-flight reviews. The
+    // two cannot run in parallel: a webhook whose connection was accepted
+    // just before SIGTERM finishes its async handler AFTER the request
+    // body read resolves, and that handler calls `scheduleReview` which
+    // adds a new promise to the in-flight set. If `drainInFlightReviews`
+    // had already taken its snapshot, the late-arriving review would not
+    // be awaited and `process.exit(0)` would kill it mid-OpenAI-call.
+    await httpClosed;
+    await drainInFlightReviews();
     process.exit(0);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
