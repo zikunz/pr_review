@@ -1,6 +1,6 @@
 {
   "name": "pr-cascade",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "Cost-aware GitHub PR review agent",
   "private": true,
   "type": "module",
