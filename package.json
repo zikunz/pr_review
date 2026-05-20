@@ -44,12 +44,12 @@
     "hono": "^4.12.19",
     "jose": "^6.2.3",
     "openai": "^6.38.0",
+    "tsx": "^4.22.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@types/node": "^25.9.0",
-    "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"
   }
