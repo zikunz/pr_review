@@ -1,20 +1,26 @@
-import { importPKCS8, SignJWT } from 'jose';
+import { createPrivateKey, type KeyObject } from 'node:crypto';
+import { SignJWT } from 'jose';
 import { getEnv } from '@/env';
 
-let cachedPrivateKey: CryptoKey | undefined;
+let cachedPrivateKey: KeyObject | undefined;
 const installationTokenCache = new Map<number, { token: string; expiresAtMs: number }>();
 const installationTokenInflight = new Map<number, Promise<string>>();
 
-async function loadPrivateKey(): Promise<CryptoKey> {
+function loadPrivateKey(): KeyObject {
   if (cachedPrivateKey) return cachedPrivateKey;
   const env = getEnv();
-  cachedPrivateKey = await importPKCS8(env.GITHUB_APP_PRIVATE_KEY, 'RS256');
+  // node:crypto.createPrivateKey auto-detects both PKCS#1
+  // (`-----BEGIN RSA PRIVATE KEY-----`) and PKCS#8
+  // (`-----BEGIN PRIVATE KEY-----`). GitHub Apps download keys in PKCS#1 by
+  // default. jose.SignJWT accepts a KeyObject directly via its KeyLike type,
+  // so no further conversion is needed.
+  cachedPrivateKey = createPrivateKey(env.GITHUB_APP_PRIVATE_KEY);
   return cachedPrivateKey;
 }
 
 async function createAppJwt(): Promise<string> {
   const env = getEnv();
-  const privateKey = await loadPrivateKey();
+  const privateKey = loadPrivateKey();
   const nowSeconds = Math.floor(Date.now() / 1000);
   return new SignJWT({})
     .setProtectedHeader({ alg: 'RS256' })
