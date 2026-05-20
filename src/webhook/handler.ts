@@ -313,16 +313,17 @@ async function runReview(ctx: ReviewContext): Promise<void> {
 
 function formatFinding(f: Finding): string {
   const header = `**[${f.severity.toUpperCase()} | ${f.category}]** confidence ${f.confidence.toFixed(2)}`;
-  // The model controls f.message. Escape backticks so the message cannot break
-  // out of inline-code, and convert HTML-significant characters so a crafted
-  // finding cannot inject markup. The result is rendered as Markdown by
-  // GitHub but cannot include images, links, or fenced blocks that the model
-  // did not earn through the verified-against-diff path.
+  // The model controls f.message. Convert HTML-significant characters so a
+  // crafted finding cannot inject markup, and escape the brackets that start
+  // a Markdown link so the model cannot phish the reader with
+  // `[click here](evil.com)` style payloads. Backticks are deliberately not
+  // escaped: GitHub PR comments render `\\\`` as a literal backslash, which
+  // breaks inline code rendering, and inline code spans are a constrained
+  // construct that cannot embed images, links, or scripts on their own.
   const safeMessage = f.message
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/`/g, '\\`')
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]');
   return [header, '', safeMessage].join('\n');
