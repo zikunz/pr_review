@@ -104,7 +104,7 @@ In scope.
 - Idempotency via in-memory map keyed by delivery ID, 24 hour TTL
 - Local file logging for traces
 - Triggers on `pull_request.opened`, `synchronize`, `reopened`
-- Manual re-trigger on `issue_comment.created` when a repository owner, member, or collaborator mentions the bot (any `@<bot-name>` reference, optionally followed by the `[bot]` suffix). Comments from `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, `MANNEQUIN`, and `NONE` author associations are ignored.
+- Manual re-trigger on `issue_comment.created` when a repository owner, member, or collaborator mentions the bot (any `@<bot-name>` reference, optionally followed by the `[bot]` suffix). Any other `author_association` value (`CONTRIBUTOR`, `FIRST_TIMER`, `FIRST_TIME_CONTRIBUTOR`, `MANNEQUIN`, `NONE`) is ignored.
 - Deploy to Railway with `/health` endpoint
 
 Not in v0.1. Cascade, persona config, auto-detection, agentic tools, repository-wide context, AST and tool-based verification, eval pipeline, frontend dashboard. Diff-line validation (the lightweight verification that ships in v0.1) is in scope above. v0.3 adds the deeper tool-based layer.
