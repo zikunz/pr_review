@@ -94,13 +94,18 @@ export function trace(record: Omit<TraceRecord, 'ts'>): void {
   if (full.details) {
     full.details = redactForTrace(full.details) as Record<string, unknown>;
   }
+  const serialized = JSON.stringify(full);
+  // Mirror to stdout so platforms like Railway and Fly that capture container
+  // logs surface trace events too. The disk file is the canonical store; the
+  // stdout copy is for live observability.
+  console.log(serialized);
   try {
     // mkdirSync with recursive: true is idempotent, so no existsSync guard
     // is needed. Restrict trace directory and file permissions because trace
     // records can contain PR titles, bodies, and finding messages.
     mkdirSync(TRACE_DIR, { recursive: true, mode: 0o700 });
     const file = resolve(TRACE_DIR, `${full.ts.slice(0, 10)}.jsonl`);
-    appendFileSync(file, `${JSON.stringify(full)}\n`, { encoding: 'utf8', mode: 0o600 });
+    appendFileSync(file, `${serialized}\n`, { encoding: 'utf8', mode: 0o600 });
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     console.warn(`trace write failed: ${reason}`);
