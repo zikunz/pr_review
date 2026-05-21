@@ -64,7 +64,12 @@ describe('redactForTrace', () => {
       cur = cur.self;
     }
     const out = redactForTrace(root);
-    expect(out).toBeDefined();
+    let leaf: unknown = out;
+    for (let i = 0; i < 20; i++) {
+      if (leaf === '[REDACTED]') break;
+      leaf = (leaf as { self?: unknown } | undefined)?.self;
+    }
+    expect(leaf).toBe('[REDACTED]');
   });
 
   it('survives a true self referencing cycle without stack overflow', () => {
