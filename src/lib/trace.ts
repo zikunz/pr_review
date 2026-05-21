@@ -28,8 +28,15 @@ const SENSITIVE_KEY_PATTERN =
 // SDK errors and GitHub API errors occasionally echo parts of the request
 // (URLs, headers, response bodies) into the message, and that text would land
 // in the trace file and stdout verbatim if we only redact object keys.
+//
+// The body character class after each prefix is intentionally `[A-Za-z0-9_]`
+// (no `-`). Real OpenAI keys and GitHub tokens are alphanumeric-with-underscore
+// after their documented prefix; the project- and svcacct- prefixes are
+// matched separately. Allowing `-` in the body would over-redact innocuous
+// strings such as URL path segments like `/sk-route-handler-not-found/...`
+// that happen to start with `sk-` and contain hyphens.
 const SECRET_VALUE_PATTERN =
-  /sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9]{36,}|gho_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]+?-----END [A-Z ]+PRIVATE KEY-----/g;
+  /sk-(?:proj-|svcacct-)?[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9]{36,}|gho_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]+?-----END [A-Z ]+PRIVATE KEY-----/g;
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
 const MAX_STRING_CHARS = 4000;

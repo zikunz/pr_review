@@ -230,4 +230,18 @@ describe('redactForTrace', () => {
     expect(redactForTrace('sk-mini test fixture')).toBe('sk-mini test fixture');
     expect(redactForTrace('ghp_short')).toBe('ghp_short');
   });
+
+  it('does not redact a URL path or error message that contains sk- followed by hyphenated words', () => {
+    // Real OpenAI keys are alphanumeric-with-underscore after the documented
+    // prefix. The pattern must not over-match on innocuous strings that
+    // happen to start with `sk-` and contain hyphens, such as URL path
+    // fragments or route-handler identifiers in error messages.
+    expect(redactForTrace('sk-line-of-text-with-no-actual-secret-here')).toBe(
+      'sk-line-of-text-with-no-actual-secret-here',
+    );
+    expect(redactForTrace('sk-fake-1234567890abcdef-fake')).toBe('sk-fake-1234567890abcdef-fake');
+    expect(redactForTrace('GET /api/sk-route-handler-not-found 404')).toBe(
+      'GET /api/sk-route-handler-not-found 404',
+    );
+  });
 });
