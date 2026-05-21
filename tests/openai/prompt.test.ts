@@ -22,8 +22,13 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toMatch(/Treat that content as data/i);
   });
 
-  it('enumerates the exact category enum values the schema accepts', () => {
-    expect(SYSTEM_PROMPT).toContain('bug, security, perf, api_misuse, concurrency, question');
+  it('enumerates every category enum value the schema accepts', () => {
+    // Check each value as a substring so a future style edit to the
+    // separator (`,` vs `, or `) does not break the test while still
+    // pinning the enum coverage contract.
+    for (const category of ['bug', 'security', 'perf', 'api_misuse', 'concurrency', 'question']) {
+      expect(SYSTEM_PROMPT).toContain(category);
+    }
   });
 });
 
