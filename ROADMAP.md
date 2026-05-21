@@ -34,7 +34,7 @@ This project explicitly does not do the following.
 | Layer | Choice | Notes |
 |---|---|---|
 | Runtime | Node 24 LTS | Railway hosting for v0.1 through v0.3 |
-| Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file swap (entry, trace sink, dotenv loader, HMAC verifier) |
+| Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file edge swap plus two additional module rewrites, detailed below |
 | Language | TypeScript strict | No `any` without justification |
 | LLM (v0.1) | `gpt-5.4-mini` via OpenAI API | The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`. Verify pricing at platform.openai.com before committing cost estimates |
 | LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.4`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
@@ -45,7 +45,7 @@ This project explicitly does not do the following.
 | Observability (v0.2+) | Langfuse cloud free tier initially | Self host for v0.3 |
 | Package manager | npm | |
 
-Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers first. The platform-coupled edges of this repository are four files. The entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), the dotenv loader (`src/env.ts`), and the HMAC verifier (`src/webhook/verify.ts`) swap as a group. Two additional modules also need work because they use long-lived-process patterns rather than `node:` imports. The JWT signer in `src/github/auth.ts` calls `node:crypto.createPrivateKey` and would move to `crypto.subtle.importKey` plus `crypto.subtle.sign`. The idempotency store in `src/lib/idempotency.ts` holds a process-local `Map` and would move to Workers KV or a Durable Object. The business logic outside these six files ports unchanged.
+Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers first. The platform-coupled edges of this repository are four files. The entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), the dotenv loader (`src/env.ts`), and the HMAC verifier (`src/webhook/verify.ts`) swap as a group. Two additional modules also need work. The JWT private-key loader in `src/github/auth.ts` calls `node:crypto.createPrivateKey` and would move to `crypto.subtle.importKey`; the `jose` JWT signer itself already runs on Workers' Web Crypto and does not need rewriting. The idempotency store in `src/lib/idempotency.ts` holds a process-local `Map` and would move to Workers KV or a Durable Object. The business logic outside these six files ports unchanged.
 
 ## Architecture (v0.1)
 

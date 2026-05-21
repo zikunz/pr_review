@@ -63,7 +63,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 ## Tech stack
 
 - Runtime. Node 24 LTS with TypeScript strict
-- Framework. Hono via `@hono/node-server`. Hono was designed for Cloudflare Workers first, so the v0.4+ Workers migration is a swap of four files at the platform-coupled edges (entry, trace sink, dotenv loader, HMAC verifier) plus rewrites of the JWT signer (currently `node:crypto`) and the idempotency store (currently a process-local Map). The business logic ports unchanged.
+- Framework. Hono via `@hono/node-server`. Hono was designed for Cloudflare Workers first, so the v0.4+ Workers migration is a swap of four files at the platform-coupled edges (entry, trace sink, dotenv loader, HMAC verifier) plus a swap of the JWT private-key loader (currently `node:crypto.createPrivateKey`) for `crypto.subtle.importKey`, and a move of the idempotency store from a process-local `Map` to Workers KV or a Durable Object. The `jose` JWT signer itself already runs on Workers' Web Crypto. The business logic ports unchanged.
 - LLM inference. OpenAI API. Single `gpt-5.4-mini` call in v0.1, three-tier cascade in v0.2.
 - Hosting. Railway for v0.1 through v0.3
 - Storage. In-process map for idempotency in v0.1. SQLite or Postgres in later versions.
