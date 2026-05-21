@@ -4,6 +4,10 @@ export interface ModelPricing {
   cachedInputPerMillionTokensUsd?: number;
 }
 
+// Pricing snapshot taken from platform.openai.com/docs/pricing on
+// 2026-05-20. Costs are USD per million tokens. Re-check the snapshot
+// before promoting a new tier or before publishing cost numbers in any
+// external writeup, since OpenAI updates these prices periodically.
 const PRICING: Record<string, ModelPricing> = {
   'gpt-5.4-mini': {
     inputPerMillionTokensUsd: 0.75,
