@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CostCapExceededError, enforceCostCap, estimateCost } from '@/lib/cost';
 
-const PENNY = 1e-9;
+const FLOAT_EPSILON_CENTS = 1e-9;
 
 describe('estimateCost', () => {
   it('charges only the input rate when no tokens are cached', () => {
@@ -69,7 +69,7 @@ describe('estimateCost', () => {
   it('total equals the sum of the three components', () => {
     const cost = estimateCost('gpt-5.4-mini', 12_345, 6_789, 4_000);
     const sum = cost.inputCents + cost.outputCents + cost.cachedInputCents;
-    expect(Math.abs(cost.totalCents - sum)).toBeLessThan(PENNY);
+    expect(Math.abs(cost.totalCents - sum)).toBeLessThan(FLOAT_EPSILON_CENTS);
   });
 });
 

@@ -204,9 +204,11 @@ describe('redactForTrace', () => {
     // class, which truncated real `sk-proj-` keys at the first hyphen
     // and silently leaked the rest of the live key into traces. This
     // test pins the corrected split-alternation so the FULL key is
-    // redacted as a single unit.
+    // redacted as a single unit. The fixture body uses a deliberately
+    // fake-looking prefix (FAKE-NOT-REAL) instead of the real-shape
+    // T3BlbkFJ marker so secret scanners do not flag the test file.
     const realShape =
-      'sk-proj-T3BlbkFJ_pCAi5l3qE8tIQ1Wm2nB0vXyZ-aBcDeFgHiJkLmNoPqRsTuVwXyZ-ABCDEFGHIJ1234567890';
+      'sk-proj-FAKE-NOT-REAL_pCAi5l3qE8tIQ1Wm2nB0vXyZ-aBcDeFgHiJkLmNoPqRsTuVwXyZ-ABCDEFGHIJ1234567890';
     expect(redactForTrace(`auth failed for ${realShape}`)).toBe('auth failed for [REDACTED]');
   });
 
