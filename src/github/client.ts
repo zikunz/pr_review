@@ -4,6 +4,16 @@ const GITHUB_API = 'https://api.github.com';
 // Outbound calls to GitHub get a hard timeout so a stuck connection cannot
 // hold a review pipeline open forever.
 const FETCH_TIMEOUT_MS = 30_000;
+// Stop accumulating patch content once the buffer exceeds this. The
+// downstream handler rejects the review when total patch chars exceeds
+// `MAX_PROMPT_DIFF_CHARS = 200_000` anyway, but that check happens AFTER
+// `fetchPullRequestFiles` returns the whole array. Without an inline cap
+// here, a crafted PR with 3000 files at GitHub's ~3MB-per-patch limit
+// could push the buffer past 9 GB before the handler ever sees it. The
+// 1 MB ceiling gives the handler enough headroom to still recognise the
+// "exceeds prompt size cap" case (since 1 MB &gt; 200 KB) while bounding
+// memory under adversarial PRs.
+const MAX_PATCH_BUFFER_CHARS = 1_000_000;
 
 function authHeaders(token: string): Record<string, string> {
   return {
@@ -72,6 +82,7 @@ export async function fetchPullRequestFiles(
   const all: PullRequestFile[] = [];
   let page = 1;
   let truncated = false;
+  let cumulativePatchChars = 0;
   while (true) {
     const response = await fetch(
       `${GITHUB_API}/repos/${coords.owner}/${coords.repo}/pulls/${pullNumber}/files?per_page=100&page=${page}`,
@@ -80,6 +91,13 @@ export async function fetchPullRequestFiles(
     await expectOk(response, 'fetchPullRequestFiles');
     const batch = (await response.json()) as PullRequestFile[];
     all.push(...batch);
+    for (const f of batch) {
+      if (typeof f.patch === 'string') cumulativePatchChars += f.patch.length;
+    }
+    if (cumulativePatchChars > MAX_PATCH_BUFFER_CHARS) {
+      truncated = true;
+      break;
+    }
     if (batch.length < 100) break;
     page++;
     if (page > MAX_PR_FILE_PAGES) {

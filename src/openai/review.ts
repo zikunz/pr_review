@@ -60,6 +60,14 @@ export class ReviewRefusedError extends Error {
   }
 }
 
+// Cap the completion length so a single review cannot drain the budget on
+// output tokens alone. The Zod schema asks for at most five findings; even
+// generous per-finding messages comfortably fit under 4000 tokens of
+// completion, so this ceiling does not truncate legitimate reviews. The
+// per-review cost cap still gates the post-call spend, but the post-call
+// gate cannot prevent the spend itself — only this pre-call ceiling can.
+const MAX_COMPLETION_TOKENS = 4000;
+
 export async function callReview(input: ReviewCallInput): Promise<ReviewCallResult> {
   const model = input.model ?? getEnv().OPENAI_MODEL;
   const completion = await client()
@@ -70,6 +78,7 @@ export async function callReview(input: ReviewCallInput): Promise<ReviewCallResu
         { role: 'user', content: buildUserPrompt(input) },
       ],
       response_format: zodResponseFormat(ReviewOutput, 'pr_review'),
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
     })
     .catch((err: unknown) => {
       if (err instanceof LengthFinishReasonError) throw new ReviewTruncatedError(model);
