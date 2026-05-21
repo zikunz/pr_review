@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { app } from '@/app';
 import { getEnv } from '@/env';
+import { trace } from '@/lib/trace';
 import { drainInFlightReviews } from '@/webhook/handler';
 
 const env = getEnv();
@@ -55,12 +56,24 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
   void shutdown('SIGINT');
 });
-// Node 24 treats both as fatal by default. Surface the cause, then drain.
+// Node 24 treats both as fatal by default. Route through `trace` so the
+// redactor scrubs any secret-shaped substring an upstream library may have
+// embedded in the error message or stack before it lands on stdout or disk.
 process.on('uncaughtException', (err) => {
-  console.error('uncaughtException', err);
+  trace({
+    event: 'process.uncaught_exception',
+    status: 'failed',
+    error: err instanceof Error ? err.message : String(err),
+    details: { stack: err instanceof Error ? err.stack : undefined },
+  });
   void shutdown('uncaughtException');
 });
 process.on('unhandledRejection', (reason) => {
-  console.error('unhandledRejection', reason);
+  trace({
+    event: 'process.unhandled_rejection',
+    status: 'failed',
+    error: reason instanceof Error ? reason.message : String(reason),
+    details: { stack: reason instanceof Error ? reason.stack : undefined },
+  });
   void shutdown('unhandledRejection');
 });
