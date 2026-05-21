@@ -150,9 +150,14 @@ describe('handleIssueCommentEvent', () => {
 });
 
 describe('drainInFlightReviews', () => {
-  it('resolves immediately when no reviews are scheduled', async () => {
+  it('drains every currently-scheduled review to zero', async () => {
+    // Earlier tests in this file schedule reviews via the dispatch
+    // helpers, so the in-flight set is not empty at the start of this
+    // test. The contract this assertion pins is that after `await
+    // drainInFlightReviews()` returns, the set is empty, regardless of
+    // what was in it on entry.
     await drainInFlightReviews();
-    expect(inFlightReviewCount()).toBeGreaterThanOrEqual(0);
+    expect(inFlightReviewCount()).toBe(0);
   });
 
   it('waits for an accepted review to settle before resolving', async () => {

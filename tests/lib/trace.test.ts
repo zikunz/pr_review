@@ -256,10 +256,12 @@ describe('redactForTrace', () => {
   });
 
   it('does not redact a URL path or error message that contains sk- followed by hyphenated words', () => {
-    // Real OpenAI keys are alphanumeric-with-underscore after the documented
-    // prefix. The pattern must not over-match on innocuous strings that
-    // happen to start with `sk-` and contain hyphens, such as URL path
-    // fragments or route-handler identifiers in error messages.
+    // The bare `sk-` branch of the value pattern intentionally rejects
+    // hyphens in its body class so a URL path segment or route-handler
+    // identifier that begins with `sk-` and continues with hyphenated
+    // words does not trip the redactor. The prefixed branches
+    // (`sk-proj-`, `sk-svcacct-`, `sk-admin-`) DO allow hyphens, so the
+    // real-key tests below still cover those shapes.
     expect(redactForTrace('sk-line-of-text-with-no-actual-secret-here')).toBe(
       'sk-line-of-text-with-no-actual-secret-here',
     );
