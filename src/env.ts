@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import { KNOWN_MODELS } from '@/lib/cost';
 
 function loadDotenv(path: string): void {
   if (!existsSync(path)) return;
@@ -21,7 +22,12 @@ function loadDotenv(path: string): void {
   }
 }
 
-loadDotenv(resolve(process.cwd(), '.env.local'));
+// Skip `.env.local` in production so a forgotten file shipped inside the
+// deployment artifact cannot silently override Railway's environment.
+// Railway sets `NODE_ENV=production`, so this is a no-op for that path.
+if (process.env.NODE_ENV !== 'production') {
+  loadDotenv(resolve(process.cwd(), '.env.local'));
+}
 
 const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
@@ -37,7 +43,17 @@ const EnvSchema = z.object({
   // to match the App slug they registered for their own deployment.
   GITHUB_BOT_USERNAME: z.string().min(1).default('pr-cascade-bot'),
   OPENAI_API_KEY: z.string().startsWith('sk-'),
-  OPENAI_MODEL: z.string().min(1).default('gpt-5.4-mini'),
+  // Validated against the pricing table so an unknown model fails at startup
+  // rather than at request time, where `estimateCost` would throw inside
+  // `runReview` and the handler would silently drop the review with only a
+  // `review.pricing_missing` trace event for the operator to find.
+  OPENAI_MODEL: z
+    .string()
+    .min(1)
+    .default('gpt-5.4-mini')
+    .refine((model) => KNOWN_MODELS.includes(model), {
+      message: `OPENAI_MODEL must be one of: ${KNOWN_MODELS.join(', ')}. Add the model to PRICING in src/lib/cost.ts before pointing the bot at it.`,
+    }),
   COST_CAP_CENTS_PER_REVIEW: z.coerce.number().positive().default(30),
 });
 

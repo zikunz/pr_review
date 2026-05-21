@@ -26,6 +26,11 @@ const PRICING: Record<string, ModelPricing> = {
   },
 };
 
+// Exposed so the env loader can reject `OPENAI_MODEL` values that have no
+// pricing entry at startup, instead of letting the unknown name silently
+// drop reviews at request time through `estimateCost`'s throw path.
+export const KNOWN_MODELS = Object.freeze(Object.keys(PRICING)) as readonly string[];
+
 export interface CostBreakdown {
   inputCents: number;
   outputCents: number;
