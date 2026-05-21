@@ -32,7 +32,7 @@ app.post('/github/webhook', async (c) => {
   } catch {
     return c.text('failed to read request body', 400);
   }
-  if (Buffer.byteLength(rawBody, 'utf8') > MAX_WEBHOOK_BODY_BYTES) {
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_WEBHOOK_BODY_BYTES) {
     return c.text('payload too large', 413);
   }
 
