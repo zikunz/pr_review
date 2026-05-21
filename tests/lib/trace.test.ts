@@ -197,6 +197,30 @@ describe('redactForTrace', () => {
     expect(out).toBe('Error: invalid api key [REDACTED]');
   });
 
+  it('redacts a real-shape sk-proj key that contains hyphens in its body', () => {
+    // Modern OpenAI project keys routinely contain hyphens in their
+    // body (per the gitleaks and GitGuardian detector regexes). An
+    // earlier tightening of this pattern dropped `-` from the body
+    // class, which truncated real `sk-proj-` keys at the first hyphen
+    // and silently leaked the rest of the live key into traces. This
+    // test pins the corrected split-alternation so the FULL key is
+    // redacted as a single unit.
+    const realShape =
+      'sk-proj-T3BlbkFJ_pCAi5l3qE8tIQ1Wm2nB0vXyZ-aBcDeFgHiJkLmNoPqRsTuVwXyZ-ABCDEFGHIJ1234567890';
+    expect(redactForTrace(`auth failed for ${realShape}`)).toBe('auth failed for [REDACTED]');
+  });
+
+  it('redacts a real-shape sk-svcacct key with hyphens', () => {
+    const realShape = 'sk-svcacct-1234567890abcdefghij1234-with-hyphens-too';
+    expect(redactForTrace(realShape)).toBe('[REDACTED]');
+  });
+
+  it('redacts a real-shape sk-admin key', () => {
+    // sk-admin- is the third documented prefix (gitleaks PR 1780).
+    const realShape = 'sk-admin-1234567890abcdefghij1234567890-with-hyphens';
+    expect(redactForTrace(realShape)).toBe('[REDACTED]');
+  });
+
   it('redacts a GitHub installation token embedded in an error message', () => {
     const out = redactForTrace('Authorization: Bearer ghs_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII');
     expect(out).toBe('Authorization: Bearer [REDACTED]');
