@@ -291,7 +291,8 @@ async function runReview(ctx: ReviewContext): Promise<void> {
         status: 'failed',
         model: result.model,
         durationMs: Date.now() - start,
-        details: { reason, usage: result.usage },
+        error: reason,
+        details: { usage: result.usage },
       });
       return;
     }
