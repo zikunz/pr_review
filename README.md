@@ -84,7 +84,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 | Per-review cost cap with usage telemetry | Shipped (v0.1) |
 | JSON Lines trace logging | Shipped (v0.1) |
 | `@<bot-name>` re-trigger from owners, members, and collaborators | Shipped (v0.1) |
-| Graceful shutdown drains in-flight reviews on SIGTERM and SIGINT | Shipped (v0.1) |
+| Graceful shutdown drains in-flight reviews on SIGTERM and SIGINT up to a 10-second ceiling | Shipped (v0.1) |
 | Three-tier cascade routing | Planned (v0.2) |
 | Agentic tool use (context fetch, library docs, CI logs) | Planned (v0.2) |
 | Persona system with `.cascade.yml` | Planned (v0.2) |
