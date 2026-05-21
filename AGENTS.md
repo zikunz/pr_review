@@ -24,7 +24,7 @@ npm run typecheck
 # Lint and format check
 npm run check
 
-# Auto fix format and safe lint issues
+# Auto fix formatting only (use `npm run check:fix` for formatting plus safe lint fixes)
 npm run format
 
 # Run tests

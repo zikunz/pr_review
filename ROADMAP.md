@@ -270,7 +270,7 @@ The author must complete the following manual setup before the bot operates.
 1. Visit https://github.com/settings/apps/new
 2. App name `pr-cascade-bot` (must be unique on GitHub)
 3. Homepage URL https://github.com/zikunz/pr_review
-4. Webhook URL is the Railway deployment URL plus `/github/webhook`
+4. Webhook URL is the Railway deployment URL plus `/github/webhook`. The Railway URL is not known on the first pass, so either leave the field as a placeholder and uncheck `Active` until Railway is configured, or fill it in after the Railway section returns a URL and revisit the App settings
 5. Webhook secret is a 32+ character random string, stored as `GITHUB_WEBHOOK_SECRET`
 6. Repository permissions
    - Contents (read)
@@ -282,8 +282,9 @@ The author must complete the following manual setup before the bot operates.
    - Pull request
    - Issue comment (for v0.1 mention triggers)
    - Check run (v0.2)
-8. Generate private key, download as PEM, store as `GITHUB_APP_PRIVATE_KEY`
-9. Note the App ID, store as `GITHUB_APP_ID`
+8. Where can this GitHub App be installed? Select `Only on this account` for a personal deployment. The setting is editable later under the App's Advanced tab, so it is safe to switch to `Any account` if the App is ever opened up to forks
+9. Generate private key, download as PEM, store as `GITHUB_APP_PRIVATE_KEY`
+10. Note the App ID, store as `GITHUB_APP_ID`
 
 ### Railway setup
 

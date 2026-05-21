@@ -11,7 +11,7 @@ const FETCH_TIMEOUT_MS = 30_000;
 // here, a crafted PR with 3000 files at GitHub's ~3MB-per-patch limit
 // could push the buffer past 9 GB before the handler ever sees it. The
 // 1 MB ceiling gives the handler enough headroom to still recognise the
-// "exceeds prompt size cap" case (since 1 MB &gt; 200 KB) while bounding
+// "exceeds prompt size cap" case (since 1 MB > 200 KB) while bounding
 // memory under adversarial PRs.
 const MAX_PATCH_BUFFER_CHARS = 1_000_000;
 
