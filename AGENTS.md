@@ -92,22 +92,16 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 
 ### Imports
 
+Biome's `organizeImports` rule sorts all imports alphabetically into a single block. Node built-ins, third-party packages, internal absolute (`@/`), and internal relative imports do not get blank-line separators between them — they sit adjacent in the sorted order.
+
 ```typescript
-// Order
-// 1. Node built-ins
 import { createHmac } from 'node:crypto';
-
-// 2. Third-party
 import { z } from 'zod';
-
-// 3. Internal absolute (@/)
 import { verifyGitHubSignature } from '@/webhook/verify';
-
-// 4. Internal relative (same dir)
 import { parseDiffLocations } from './diff';
 ```
 
-Biome handles import sorting automatically. Run `npm run format` before commit.
+Run `npm run format` before commit and let Biome decide ordering. Do not hand-insert blank lines between groups; Biome will remove them on the next format pass.
 
 ---
 
