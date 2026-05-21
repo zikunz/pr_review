@@ -335,6 +335,14 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       validFindings.length,
     );
 
+    // `event: 'COMMENT'` is hard-coded by design. The model still emits
+    // `result.review.overall_assessment` per the Zod schema, but the
+    // handler intentionally ignores it. The ROADMAP non-goal section
+    // forbids automatic PR approval, so even an `approve` from the
+    // model would never translate into a state-changing review event.
+    // The field stays in the schema as forward-compatibility for v0.2
+    // routing decisions that may consult model confidence; v0.1 only
+    // ever comments.
     await postPullRequestReview(ctx.installationId, ctx.coords, ctx.prNumber, {
       body,
       event: 'COMMENT',
