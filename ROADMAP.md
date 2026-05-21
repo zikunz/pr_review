@@ -72,7 +72,7 @@ async pipeline
    │ analyze  │  build prompt → gpt-5.4-mini with response_format → Zod parse
    │ validate │  verify every finding line exists in diff
    │ post     │  Reviews API with line+side inline comments
-   │ log      │  cost, duration, finding count to local trace file
+   │ log      │  cost, duration, finding count to stdout and local trace file
    └─────────┘
 ```
 
