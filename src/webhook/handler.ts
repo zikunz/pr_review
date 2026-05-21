@@ -203,10 +203,11 @@ function scheduleReview(ctx: ReviewContext): void {
 // Resolve once every currently-scheduled review has settled. The shutdown
 // path in `src/server.ts` awaits this AFTER `server.close` has resolved, so
 // every request handler has already finished calling `scheduleReview` by
-// the time the spread snapshot is taken. Draining in parallel with the HTTP
-// close was the round 11 design and had a race where a handler still in
-// `await c.req.text()` at SIGTERM scheduled a review after the snapshot was
-// taken; the sequential ordering closes that race.
+// the time the spread snapshot is taken. An earlier parallel-drain design
+// had a race where a handler still in `await c.req.text()` at SIGTERM
+// scheduled a review after the snapshot was taken. Sequential ordering
+// (close the HTTP listener first, snapshot the in-flight set second)
+// closes that race.
 export async function drainInFlightReviews(): Promise<void> {
   await Promise.allSettled([...inFlightReviews]);
 }

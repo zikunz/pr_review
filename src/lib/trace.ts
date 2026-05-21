@@ -53,7 +53,7 @@ const MAX_STRING_CHARS = 4000;
 //   - truncates raw strings
 //   - converts well known object types (Date, Error, RegExp, Map, Set, Buffer)
 //     to a JSON safe form
-//   - drops BigInt values that would otherwise throw inside JSON.stringify
+//   - converts BigInt values to a JSON-safe string so JSON.stringify does not throw
 export function redactForTrace(value: unknown, depth = 0): unknown {
   if (value == null) return value;
   if (depth > MAX_DEPTH) return REDACTED;

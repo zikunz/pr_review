@@ -250,6 +250,19 @@ describe('redactForTrace', () => {
     expect(out).toBe('PAT [REDACTED] trailing');
   });
 
+  it('redacts every secret when multiple appear in one string', () => {
+    // Guards against accidental loss of the `/g` flag on
+    // SECRET_VALUE_PATTERN. Without `/g`, only the first match in a
+    // string is replaced and the second and later secrets leak into
+    // trace records verbatim. Every other secret-shape test has a
+    // single secret per string, so a missing `/g` would not break
+    // any of them.
+    const out = redactForTrace(
+      'sk-proj-AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII then ghs_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII',
+    );
+    expect(out).toBe('[REDACTED] then [REDACTED]');
+  });
+
   it('does not touch innocuous strings that just contain sk- or ghp_ as substring', () => {
     expect(redactForTrace('sk-mini test fixture')).toBe('sk-mini test fixture');
     expect(redactForTrace('ghp_short')).toBe('ghp_short');
