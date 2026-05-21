@@ -32,6 +32,9 @@ const EnvSchema = z.object({
     .min(100)
     .transform((s) => s.replace(/\\n/g, '\n')),
   GITHUB_WEBHOOK_SECRET: z.string().min(32),
+  // `pr-cascade-bot` is the App slug the project owner registered, not a
+  // generic fallback. Forks deploying this code should override the value
+  // to match the App slug they registered for their own deployment.
   GITHUB_BOT_USERNAME: z.string().min(1).default('pr-cascade-bot'),
   OPENAI_API_KEY: z.string().startsWith('sk-'),
   OPENAI_MODEL: z.string().min(1).default('gpt-5.4-mini'),
