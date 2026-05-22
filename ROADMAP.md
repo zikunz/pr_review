@@ -42,7 +42,7 @@ This project explicitly does not do the following.
 | Lint and format | Biome 2.x | Single tool |
 | Test | Vitest 4.x | |
 | CI | GitHub Actions | Typecheck, lint, test, gitleaks secret scan |
-| Observability (v0.2+) | Langfuse cloud free tier initially | Self host for v0.3 |
+| Observability (v0.2+) | Langfuse cloud free tier initially | Self-hosted Langfuse evaluated when traffic and cost justify the operational overhead |
 | Package manager | npm | |
 
 Cloudflare Workers is an intentional v0.4 target. Hono was designed for Workers first. The platform-coupled edges of this repository are four files. The entry file (`src/server.ts`), the trace sink (`src/lib/trace.ts`), the dotenv loader (`src/env.ts`), and the HMAC verifier (`src/webhook/verify.ts`) swap as a group. Two additional modules also need work. The JWT private-key loader in `src/github/auth.ts` calls `node:crypto.createPrivateKey` and would move to `crypto.subtle.importKey`. The `jose` JWT signer itself already runs on Workers' Web Crypto and does not need rewriting. The idempotency store in `src/lib/idempotency.ts` holds a process-local `Map` and would move to Workers KV or a Durable Object. The business logic outside these six files ports unchanged.
@@ -155,6 +155,7 @@ Not committed. Listed for direction.
 - Adversarial robustness study with prompt injection PR corpus and defensive sensor
 - Cross-codebase pattern recognition via vector database of historical PR outcomes
 - Verified execution via sandboxed test runs
+- Multi-provider LLM cascade exploration (alternatives to single-vendor OpenAI), tracked in the tech-stack table above
 
 ## Personas and config
 
