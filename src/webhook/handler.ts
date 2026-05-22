@@ -425,9 +425,12 @@ function formatReviewBody(
     lines.push(`_Dropped ${dropped} finding${suffix} that referenced lines outside this PR diff._`);
   }
   if (filesTruncated) {
+    // Format with thousands separator so the rendered review body matches
+    // the "3,000" form used in README Limitations and ROADMAP Risks.
+    const fileLimit = (MAX_PR_FILE_PAGES * 100).toLocaleString('en-US');
     lines.push('');
     lines.push(
-      `_This PR exceeded the bot's per-review file budget. The bot reviewed only the first ${MAX_PR_FILE_PAGES * 100} changed files; later files were not inspected._`,
+      `_This PR exceeded the bot's per-review file budget. The bot reviewed only the first ${fileLimit} changed files; later files were not inspected._`,
     );
   }
   return lines.join('\n');
