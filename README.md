@@ -30,7 +30,7 @@ Return 202 Accepted, then async pipeline
    build prompt and call OpenAI with a Zod schema response_format
    drop any finding that does not reference a line in the diff
    post a Review with inline comments via the line+side API
-   append duration and outcome to a local trace file (cost on the success path)
+   append duration and outcome to stdout and a local trace file (cost on the success path)
 ```
 
 ## Why this exists
