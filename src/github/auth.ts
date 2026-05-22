@@ -79,7 +79,7 @@ export async function getInstallationToken(installationId: number): Promise<stri
 
   // Coalesce concurrent callers onto a single mint request. Without this, two
   // simultaneous webhooks for the same installation would both POST to
-  // /access_tokens; GitHub revokes the older token, leaving any in-flight
+  // /access_tokens. GitHub revokes the older token, leaving any in-flight
   // request that used it to 401.
   const existing = installationTokenInflight.get(installationId);
   if (existing) return existing;

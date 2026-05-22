@@ -13,7 +13,7 @@ export const app = new Hono();
 // GitHub documents an outer webhook payload size limit of 25 MB. Refuse anything
 // larger before allocating memory or running HMAC over attacker controlled bytes.
 // The Content-Length pre-check is best effort because the header is attacker
-// controlled; the post-read byte length check is the authoritative gate.
+// controlled, so the post-read byte length check is the authoritative gate.
 const MAX_WEBHOOK_BODY_BYTES = 25 * 1000 * 1000;
 
 app.get('/health', (c) => c.json({ status: 'ok' }));

@@ -125,7 +125,7 @@ export function trace(record: Omit<TraceRecord, 'ts'>): void {
   }
   const serialized = JSON.stringify(full);
   // Mirror to stdout so platforms like Railway and Fly that capture container
-  // logs surface trace events too. The disk file is the canonical store; the
+  // logs surface trace events too. The disk file is the canonical store. The
   // stdout copy is for live observability.
   console.log(serialized);
   try {

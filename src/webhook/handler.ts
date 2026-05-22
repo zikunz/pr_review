@@ -344,7 +344,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
     // forbids automatic PR approval, so even an `approve` from the
     // model would never translate into a state-changing review event.
     // The field stays in the schema as forward-compatibility for v0.2
-    // routing decisions that may consult model confidence; v0.1 only
+    // routing decisions that may consult model confidence. v0.1 only
     // ever comments.
     await postPullRequestReview(ctx.installationId, ctx.coords, ctx.prNumber, {
       body,
