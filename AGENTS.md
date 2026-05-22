@@ -64,7 +64,7 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 ### TypeScript
 
 - `strict: true` always. No `any` without a comment justifying why.
-- Either type aliases or interfaces are fine for object shapes. Prefer interfaces for exported public shapes (better hover output and declaration merging); prefer type aliases for unions, tuples, and Zod-inferred types.
+- Either type aliases or interfaces are fine for object shapes. Prefer interfaces for exported public shapes (better hover output and declaration merging). Use type aliases for unions, tuples, and Zod-inferred types.
 - Discriminated unions for sum types. Use `kind` or `type` as discriminator.
 - Path alias `@/*` maps to `src/*`. Use absolute imports from `@/` for cross-directory references.
 
@@ -101,7 +101,7 @@ import { verifyGitHubSignature } from '@/webhook/verify';
 import { parseDiffLocations } from './diff';
 ```
 
-Run `npm run format` before commit and let Biome decide ordering. Do not hand-insert blank lines between groups; Biome will remove them on the next format pass.
+Run `npm run format` before commit and let Biome decide ordering. Do not hand-insert blank lines between groups. Biome will remove them on the next format pass.
 
 ---
 
