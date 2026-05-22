@@ -60,9 +60,14 @@ export function redactForTrace(value: unknown, depth = 0): unknown {
 
   switch (typeof value) {
     case 'string': {
-      const truncated =
-        value.length > MAX_STRING_CHARS ? `${value.slice(0, MAX_STRING_CHARS)}…` : value;
-      return truncated.replace(SECRET_VALUE_PATTERN, REDACTED);
+      // Redact before truncating. The previous order truncated first, so a
+      // secret straddling the cap had its tail removed, leaving a prefix
+      // shorter than the pattern's `{20,}` quantifier. The pattern would
+      // then fail to match and the prefix would leak in cleartext.
+      const redacted = value.replace(SECRET_VALUE_PATTERN, REDACTED);
+      return redacted.length > MAX_STRING_CHARS
+        ? `${redacted.slice(0, MAX_STRING_CHARS)}…`
+        : redacted;
     }
     case 'bigint':
       return `${value.toString()}n`;

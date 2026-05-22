@@ -55,6 +55,19 @@ describe('redactForTrace', () => {
     expect(out.endsWith('…')).toBe(true);
   });
 
+  it('redacts a secret that would straddle the truncation boundary', () => {
+    // A secret whose body crosses char 4000 used to leak its prefix because
+    // the pattern needs {20,} chars to match and the truncated tail was
+    // shorter than that. Redaction now runs before truncation, so the secret
+    // collapses to `[REDACTED]` regardless of where it sat in the input.
+    const filler = 'a'.repeat(3980);
+    const key = `sk-proj-${'B'.repeat(40)}`;
+    const tail = 'c'.repeat(120);
+    const out = redactForTrace(filler + key + tail) as string;
+    expect(out).not.toMatch(/sk-proj-B/);
+    expect(out).toContain('[REDACTED]');
+  });
+
   it('caps recursion depth on deeply nested shapes', () => {
     type Cyclic = { self?: Cyclic };
     const root: Cyclic = {};
