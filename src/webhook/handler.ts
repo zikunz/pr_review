@@ -4,6 +4,7 @@ import {
   fetchPullRequest,
   fetchPullRequestFiles,
   type InlineReviewComment,
+  MAX_PR_FILE_PAGES,
   type PullRequestFile,
   postPullRequestReview,
   type RepoCoordinates,
@@ -334,6 +335,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       result.review.summary,
       result.review.findings.length,
       validFindings.length,
+      filesResult.truncated,
     );
 
     // `event: 'COMMENT'` is hard-coded by design. The model still emits
@@ -398,7 +400,12 @@ function formatFinding(f: Finding): string {
   return [header, '', safeMessage].join('\n');
 }
 
-function formatReviewBody(summary: string, total: number, posted: number): string {
+function formatReviewBody(
+  summary: string,
+  total: number,
+  posted: number,
+  filesTruncated: boolean,
+): string {
   // The model controls `summary` the same way it controls each finding's
   // message, so apply the same escape chain `formatFinding` uses. Without
   // this, a prompt-injected PR description can elicit a model summary
@@ -416,6 +423,12 @@ function formatReviewBody(summary: string, total: number, posted: number): strin
     lines.push('');
     const suffix = dropped === 1 ? '' : 's';
     lines.push(`_Dropped ${dropped} finding${suffix} that referenced lines outside this PR diff._`);
+  }
+  if (filesTruncated) {
+    lines.push('');
+    lines.push(
+      `_This PR exceeded the bot's per-review file budget. The bot reviewed only the first ${MAX_PR_FILE_PAGES * 100} changed files; later files were not inspected._`,
+    );
   }
   return lines.join('\n');
 }
