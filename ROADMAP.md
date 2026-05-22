@@ -125,6 +125,7 @@ New capabilities.
 4. **First PR onboarding callout** that explains persona selection on the first review in a repo.
 5. **Langfuse integration** for trace observability.
 6. **Promptfoo regression suite** in CI.
+7. **Operational hardening tasks** tracked in the Risks table below: signed-head check on the webhook payload before review, per-installation in-flight semaphore on `scheduleReview`, draft-PR skip with `ready_for_review` trigger, extended Markdown escape chain for `@`, `#`, and bare URLs in posted findings, `review.cost_settled` pre-post trace event, per-repo and per-day cost caps. The exact subset that lands in v0.2 vs. slips to v0.2.x depends on the cascade-routing work consuming the front half of the milestone.
 
 ### v0.3 scope
 
