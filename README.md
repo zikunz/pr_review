@@ -99,6 +99,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 - The per-review cost cap stops the bot from posting a review whose cost exceeds the cap, but the LLM call has already completed by the time the cap is checked. Pre-flight cost estimation is a v0.2 candidate.
 - `pull_request.opened`, `synchronize`, and `reopened` events from any author trigger a review, including drive-by fork contributors. The per-review cost cap bounds the cost of any single review, but does not bound cumulative cost from many pushes by the same author. Per-repo and per-day cost caps are a v0.2 candidate.
 - The review path fetches the current PR head, not the head SHA GitHub signed in the webhook payload. A force-push between webhook delivery and fetch swaps the reviewed content; the posted review carries the new commit SHA. Comparing the fetched head against the signed head before reviewing is a v0.2 candidate.
+- The webhook scheduler is fire-and-forget. A burst of qualifying webhooks (a force-push storm, a `synchronize` flood from a rebase loop, comment-mention spam from an authorized commenter) launches that many simultaneous OpenAI calls. The per-review cost cap bounds each call but is not aggregate, so the only ceilings on a burst are the per-call cap and the OpenAI org-level quota. A per-installation in-flight semaphore is a v0.2 candidate.
 - Cascade routing, persona config, agentic tool use, and the calibrated-confidence verifier are all roadmap items, not v0.1 features.
 
 ## Security
