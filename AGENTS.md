@@ -27,8 +27,8 @@ npm run check
 # Auto fix formatting only (use `npm run check:fix` for formatting plus safe lint fixes)
 npm run format
 
-# Run tests
-npm test
+# Run tests once (use `npm test` for watch mode during local development)
+npm run test:run
 
 # Run all checks (typecheck, lint plus format check, test)
 npm run verify
