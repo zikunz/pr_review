@@ -1,6 +1,6 @@
 # Roadmap
 
-Canonical product spec for PR Cascade. Last updated 2026-05-20.
+Canonical product spec for PR Cascade. Last updated 2026-05-22.
 
 ## Identity
 
