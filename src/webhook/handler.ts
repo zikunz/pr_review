@@ -430,7 +430,7 @@ function formatReviewBody(
     const fileLimit = (MAX_PR_FILE_PAGES * 100).toLocaleString('en-US');
     lines.push('');
     lines.push(
-      `_This PR exceeded the bot's per-review file budget. The bot reviewed only the first ${fileLimit} changed files; later files were not inspected._`,
+      `_This PR exceeded the bot's per-review file budget. The bot reviewed only the first ${fileLimit} changed files. Later files were not inspected._`,
     );
   }
   return lines.join('\n');
