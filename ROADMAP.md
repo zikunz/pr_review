@@ -245,6 +245,7 @@ Summary, with concrete numbers added after v0.3 ships measured data. PR Cascade 
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per-review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per-repo and per-day caps planned in v0.2. |
 | Review post fails after LLM cost incurred | Medium | A failed `postPullRequestReview` is logged as a `review.failed` trace event with the error message and duration. Cost and finding counts are captured only on the success path today. A pre-post `review.cost_settled` trace event is a v0.2 candidate. |
 | Force push leaves stale inline comments | Low | GitHub auto marks them outdated. No action required |
+| Time-of-check / time-of-use race on PR head SHA | Medium | The webhook is HMAC-signed at SHA A, but `fetchPullRequest` reads the current head, which may be a force-pushed SHA B. The bot reviews B instead of A. Comparing the fetched `pr.head.sha` against a signed-head field extracted from the webhook payload is a v0.2 candidate; until then the review is bound to whatever the PR head is at fetch time, not the SHA GitHub signed. |
 | Persona config syntax error | Low | Strict Zod schema (planned with the v0.2 persona feature). Fall back to default and notify in review body. |
 | Spam findings on docs only or generated files | Medium | Path filter in default persona (planned with the v0.2 persona feature). The current v0.1 prompt asks the model to skip trivial findings. |
 
