@@ -40,7 +40,7 @@ Most automated code review tools treat the model as a black box and ship a singl
 Three ideas drive the design.
 
 1. Verifiability over confidence. Every finding the bot posts has been checked against the unified diff that GitHub returned for the PR, so the bot cannot fabricate a comment about an untouched line. The model also reports its own confidence on every finding. Calibrating that self-reported number against ground truth is the v0.3 work.
-2. Cost discipline. Each call writes a token and cost ledger to the local trace file. A per-review cost cap stops a single PR from exceeding the budget. The planned v0.2 cascade keeps routine reviews on a small model and escalates to a frontier model only when the lower tier reports low confidence.
+2. Cost discipline. Each call writes a token and cost ledger to the local trace file. A per-review cost cap suppresses the posted review when the call exceeded its budget, leaving an audit trail so a runaway PR cannot also flood the comments. Pre-flight cost estimation is a v0.2 candidate. The planned v0.2 cascade keeps routine reviews on a small model and escalates to a frontier model only when the lower tier reports low confidence.
 3. Transparency. Prompts, schemas, and trace data formats are open so anyone can reproduce or critique the approach.
 
 ## Quickstart
