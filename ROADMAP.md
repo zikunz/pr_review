@@ -239,7 +239,7 @@ Summary, with concrete numbers added after v0.3 ships measured data. PR Cascade 
 |---|---|---|
 | Diff exceeds context window | Medium | Total patch character count is capped (`MAX_PROMPT_DIFF_CHARS = 200_000` in `src/webhook/handler.ts`). Reviews above the cap are skipped and logged. Per file chunking is a v0.2 candidate. |
 | Webhook duplicate delivery | High | Idempotency map keyed on `X-GitHub-Delivery` with 24 hour TTL |
-| GitHub App private key leak | Critical | Stored as Railway secret. Never in repo. Daily git history scan via gitleaks. Rotation plan if exposed |
+| GitHub App private key leak | Critical | Stored as Railway secret. Never in repo. Per-push and per-PR gitleaks scan in CI. Rotation plan if exposed |
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
 | OpenAI rate limit hit | Low | Rely on the SDK's retry semantics for transient 429 responses. Org-level rate and spend caps are the second line of defense. |
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per-review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per-repo and per-day caps planned in v0.2. |
