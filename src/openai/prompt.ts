@@ -52,11 +52,19 @@ export function buildDiffMarkdown(files: PromptFile[]): string {
   const sections: string[] = [];
   for (const file of files) {
     if (!file.patch) continue;
+    // Sanitize the filename before interpolating into the markdown heading.
+    // Git permits newlines, carriage returns, and backticks in path
+    // components. A path containing a newline would split the `### name`
+    // heading into multiple lines and let attacker-controlled prose appear
+    // as top-level markdown above the diff fence, escaping the system
+    // prompt's "untrusted user input" boundary. Backticks in the heading
+    // could also confuse a markdown-aware reader. Strip both classes.
+    const safeFilename = file.filename.replace(/[\r\n`]/g, '');
     // Pick a fence longer than the longest backtick run in the patch so a
     // patch that touches a markdown file with triple-backtick code blocks
     // does not close our fence early.
     const fence = '`'.repeat(Math.max(3, longestBacktickRun(file.patch) + 1));
-    sections.push([`### ${file.filename}`, `${fence}diff`, file.patch, fence].join('\n'));
+    sections.push([`### ${safeFilename}`, `${fence}diff`, file.patch, fence].join('\n'));
   }
   return sections.join('\n\n');
 }
