@@ -82,7 +82,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 | Inline comments via the GitHub Reviews API `line` and `side` fields | Shipped (v0.1) |
 | Idempotency store keyed on `X-GitHub-Delivery` with 24h TTL | Shipped (v0.1) |
 | Per-review cost cap with usage telemetry | Shipped (v0.1) |
-| JSON Lines trace logging | Shipped (v0.1) |
+| JSON Lines trace logging with secret-shaped substring redaction | Shipped (v0.1) |
 | `@<bot-name>` re-trigger from owners, members, and collaborators | Shipped (v0.1) |
 | Graceful shutdown drains in-flight reviews on SIGTERM, SIGINT, and fatal process errors up to a 10-second ceiling | Shipped (v0.1) |
 | Three-tier cascade routing | Planned (v0.2) |
