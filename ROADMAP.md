@@ -36,7 +36,7 @@ This project explicitly does not do the following.
 | Runtime | Node 24 LTS | Railway hosting for v0.1 through v0.3 |
 | Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file edge swap plus two additional module rewrites, detailed below |
 | Language | TypeScript strict | No `any` without justification |
-| LLM (v0.1) | `gpt-5.4-mini` via OpenAI API | The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`. Verify pricing at platform.openai.com before committing cost estimates |
+| LLM (v0.1) | `gpt-5.4-mini` via OpenAI-compatible API | Direct OpenAI by default. Set `OPENAI_BASE_URL=https://openrouter.ai/api/v1` to route through OpenRouter (one key for all providers). The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`. Verify pricing at the provider before committing cost estimates |
 | LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.4`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
 | Auth | GitHub App with JWT signed installation tokens | Standard pattern |
 | Lint and format | Biome 2.x | Single tool |
