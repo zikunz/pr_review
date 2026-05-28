@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { KNOWN_MODELS } from '@/lib/cost';
+import { KNOWN_MODELS, normalizeModel } from '@/lib/cost';
 
 function loadDotenv(path: string): void {
   if (!existsSync(path)) return;
@@ -42,17 +42,25 @@ const EnvSchema = z.object({
   // generic fallback. Forks deploying this code should override the value
   // to match the App slug they registered for their own deployment.
   GITHUB_BOT_USERNAME: z.string().min(1).default('pr-cascade-bot'),
+  // The OpenAI SDK is also used to talk to OpenAI-compatible gateways. Leave
+  // OPENAI_BASE_URL unset to call OpenAI directly. Set it to
+  // https://openrouter.ai/api/v1 to route every inference call through
+  // OpenRouter (one key for all providers). The `sk-` prefix check below
+  // already accepts OpenRouter keys, which are `sk-or-...`.
+  OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().startsWith('sk-'),
   // Validated against the pricing table so an unknown model fails at startup
   // rather than at request time, where `estimateCost` would throw inside
   // `runReview` and the handler would silently drop the review with only a
   // `review.pricing_missing` trace event for the operator to find.
+  // `normalizeModel` strips an OpenRouter-style `provider/` prefix so
+  // `openai/gpt-5.4-mini` validates against the bare pricing-table keys.
   OPENAI_MODEL: z
     .string()
     .min(1)
     .default('gpt-5.4-mini')
-    .refine((model) => KNOWN_MODELS.includes(model), {
-      message: `OPENAI_MODEL must be one of: ${KNOWN_MODELS.join(', ')}. Add the model to PRICING in src/lib/cost.ts before pointing the bot at it.`,
+    .refine((model) => KNOWN_MODELS.includes(normalizeModel(model)), {
+      message: `OPENAI_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}. Add the model to PRICING in src/lib/cost.ts before pointing the bot at it.`,
     }),
   COST_CAP_CENTS_PER_REVIEW: z.coerce.number().positive().default(30),
 });

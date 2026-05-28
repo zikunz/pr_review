@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CostCapExceededError, enforceCostCap, estimateCost } from '@/lib/cost';
+import { CostCapExceededError, enforceCostCap, estimateCost, normalizeModel } from '@/lib/cost';
 
 const FLOAT_EPSILON_CENTS = 1e-9;
 
@@ -58,12 +58,32 @@ describe('estimateCost', () => {
     expect(() => estimateCost('not-a-real-model', 100, 100, 0)).toThrow(/No pricing registered/);
   });
 
+  it('normalizeModel strips a provider prefix and passes bare names through', () => {
+    expect(normalizeModel('openai/gpt-5.4-mini')).toBe('gpt-5.4-mini');
+    expect(normalizeModel('anthropic/claude-sonnet-4')).toBe('claude-sonnet-4');
+    expect(normalizeModel('gpt-5.4-mini')).toBe('gpt-5.4-mini');
+  });
+
   it('has pricing registered for every cascade tier model', () => {
     // Each tier is exercised so a future pricing-table edit cannot drop a
     // model without the test suite flagging it.
     expect(() => estimateCost('gpt-5.4-mini', 1, 1, 0)).not.toThrow();
     expect(() => estimateCost('gpt-5.4', 1, 1, 0)).not.toThrow();
     expect(() => estimateCost('gpt-5.5', 1, 1, 0)).not.toThrow();
+  });
+
+  it('prices a provider-prefixed (OpenRouter) model name the same as the bare name', () => {
+    // OpenRouter returns model names like `openai/gpt-5.4-mini`. The pricing
+    // lookup strips the provider prefix, so the cost must match the bare name.
+    const bare = estimateCost('gpt-5.4-mini', 10_000, 5_000, 0);
+    const prefixed = estimateCost('openai/gpt-5.4-mini', 10_000, 5_000, 0);
+    expect(prefixed.totalCents).toBeCloseTo(bare.totalCents, 9);
+  });
+
+  it('still throws for a provider-prefixed unknown model', () => {
+    expect(() => estimateCost('openai/not-a-real-model', 100, 100, 0)).toThrow(
+      /No pricing registered/,
+    );
   });
 
   it('total equals the sum of the three components', () => {

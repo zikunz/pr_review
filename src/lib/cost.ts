@@ -31,6 +31,15 @@ const PRICING: Record<string, ModelPricing> = {
 // drop reviews at request time through `estimateCost`'s throw path.
 export const KNOWN_MODELS = Object.freeze(Object.keys(PRICING)) as readonly string[];
 
+// OpenRouter and other OpenAI-compatible gateways prefix the model name with
+// a provider slug, for example `openai/gpt-5.4-mini`. The pricing table keys
+// on the bare model name, so strip any leading `provider/` segment before a
+// lookup. A bare name (no slash) passes through unchanged.
+export function normalizeModel(model: string): string {
+  const slash = model.lastIndexOf('/');
+  return slash === -1 ? model : model.slice(slash + 1);
+}
+
 export interface CostBreakdown {
   inputCents: number;
   outputCents: number;
@@ -44,7 +53,7 @@ export function estimateCost(
   outputTokens: number,
   cachedInputTokens = 0,
 ): CostBreakdown {
-  const pricing = PRICING[model];
+  const pricing = PRICING[normalizeModel(model)];
   if (!pricing) {
     throw new Error(`No pricing registered for model: ${model}`);
   }

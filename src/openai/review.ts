@@ -11,11 +11,27 @@ let cachedClient: OpenAI | undefined;
 function client(): OpenAI {
   if (cachedClient) return cachedClient;
   const env = getEnv();
-  // Explicit 60s ceiling so a slow OpenAI response cannot pin a review
-  // promise for the lifetime of the container. The SDK's default has
-  // shifted across versions, so set it here rather than rely on whatever
-  // ships.
-  cachedClient = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 60_000 });
+  // Explicit 60s ceiling so a slow response cannot pin a review promise for
+  // the lifetime of the container. The SDK's default has shifted across
+  // versions, so set it here rather than rely on whatever ships.
+  const options: ConstructorParameters<typeof OpenAI>[0] = {
+    apiKey: env.OPENAI_API_KEY,
+    timeout: 60_000,
+  };
+  // When OPENAI_BASE_URL points at an OpenAI-compatible gateway (OpenRouter),
+  // route through it. OpenRouter reads two optional attribution headers for
+  // its app-ranking leaderboard; they are ignored by OpenAI and other
+  // gateways, so only attach them when the URL is actually OpenRouter.
+  if (env.OPENAI_BASE_URL) {
+    options.baseURL = env.OPENAI_BASE_URL;
+    if (env.OPENAI_BASE_URL.includes('openrouter.ai')) {
+      options.defaultHeaders = {
+        'HTTP-Referer': 'https://github.com/zikunz/pr_review',
+        'X-Title': 'PR Cascade',
+      };
+    }
+  }
+  cachedClient = new OpenAI(options);
   return cachedClient;
 }
 
