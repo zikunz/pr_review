@@ -50,7 +50,7 @@ Production deployment runs through Railway and uses `npm run start` as the launc
 | Framework | Hono via `@hono/node-server`. Hono is portable to Cloudflare Workers, though only the Node adapter is wired up today. |
 | Hosting | Railway for v0.1 through v0.3 |
 | Storage | In-memory map for v0.1 idempotency. Database in later versions. |
-| LLM inference | OpenAI API. `gpt-5.4-mini` in v0.1. v0.2 cascade routes across `gpt-5.4-mini` (tier 1), `gpt-5.4` (tier 2), and `gpt-5.5` (tier 3 advisor). The earlier `gpt-5.X-codex` family is completion-only and incompatible with `chat.completions.parse`. |
+| LLM inference | OpenAI API. `gpt-5.4-mini` in v0.1. v0.2 cascade routes across `gpt-5.4-mini` (tier 1), `gpt-5.4` (tier 2), and `gpt-5.5` (tier 3 advisor). |
 | Observability | Local trace file for v0.1. Langfuse later. |
 | Lint and format | Biome 2.x |
 | Test | Vitest 4.x |
