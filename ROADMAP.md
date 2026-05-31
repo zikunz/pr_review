@@ -36,7 +36,7 @@ This project explicitly does not do the following.
 | Runtime | Node 24 LTS | Railway hosting for v0.1 through v0.3 |
 | Framework | Hono with `@hono/node-server` | Portable to Cloudflare Workers later via a four-file edge swap plus two additional module rewrites, detailed below |
 | Language | TypeScript strict | No `any` without justification |
-| LLM (v0.1) | `gpt-5.4-mini` via OpenAI-compatible API | Direct OpenAI by default. Set `OPENAI_BASE_URL=https://openrouter.ai/api/v1` to route through OpenRouter (one key for all providers). The `gpt-5.X-codex` family is completion-only and rejects `chat.completions.parse`. Verify pricing at the provider before committing cost estimates |
+| LLM (v0.1) | `gpt-5.4-mini` via OpenAI-compatible API | Direct OpenAI by default. Set `OPENAI_BASE_URL=https://openrouter.ai/api/v1` to route through OpenRouter (one key for all providers). Verify pricing and API compatibility at the provider before committing cost estimates |
 | LLM (v0.2 cascade) | Tier 1 `gpt-5.4-mini`, Tier 2 `gpt-5.4`, Tier 3 `gpt-5.5` advisor | All OpenAI for v0.2. Multi-provider cascade becomes a v0.4+ exploration |
 | Auth | GitHub App with JWT signed installation tokens | Standard pattern |
 | Lint and format | Biome 2.x | Single tool |
@@ -167,6 +167,7 @@ Ignore    style, naming, subjective architecture choices
 Tone      direct and constructive
 Findings  schema caps the array at five, prompt asks the model to prefer quality over quantity
 Threshold the model assigns a confidence per finding. A post side threshold lands in v0.2
+Inputs    PR title, description, and unified diff. The description informs author intent only. The prompt forbids its claims from lowering scrutiny (anti-framing, arXiv:2603.18740)
 ```
 
 Starting v0.2 (planned), users override via `.cascade.yml` in the repo root.
@@ -243,6 +244,7 @@ Summary, with concrete numbers added after v0.3 ships measured data. PR Cascade 
 | Webhook duplicate delivery | High | Idempotency map keyed on `X-GitHub-Delivery` with 24 hour TTL |
 | GitHub App private key leak | Critical | Stored as Railway secret. Never in repo. Per-push and per-PR gitleaks scan in CI. Rotation plan if exposed |
 | Bot posts hallucinated finding (line does not exist) | High | Validate every finding line is present in the diff before posting. v0.3 adds AST verification |
+| Confirmation-bias framing via PR metadata | High | A PR whose title or description frames the change as "safe", "already tested", or "minor" can sharply suppress an LLM's defect detection (arXiv:2603.18740, "Measuring and Exploiting Confirmation Bias in LLM-Assisted Security Code Review"). v0.1 keeps the PR description because it carries useful author intent and design rationale that reduce false positives, but the system prompt's USING THE PR DESCRIPTION rule (`src/openai/prompt.ts`) tells the model to use it for intent only and never let a reassuring claim lower its scrutiny, judging correctness from the diff itself. The framing paper's threat model is untrusted contributions; for external or untrusted PRs, withholding the description entirely is a stronger mitigation and is a v0.2 candidate (reuse the existing `author_association` trust signal). |
 | OpenAI rate limit hit | Low | Rely on the SDK's retry semantics for transient 429 responses. Org-level rate and spend caps are the second line of defense. |
 | Cost runaway from misconfiguration or unexpected traffic | Critical | Per-review cap enforced via `COST_CAP_CENTS_PER_REVIEW` (default $0.30). Per-repo and per-day caps planned in v0.2. |
 | Public-repo cost amplification by fork PR or `synchronize` storm | Medium | `pull_request.opened`, `synchronize`, and `reopened` events from any author trigger reviews. The `@mention` re-trigger path has an `OWNER`/`MEMBER`/`COLLABORATOR` `author_association` gate; the PR-event path does not. Each push incurs a fresh OpenAI call before the per-review cap can suppress the posted output, so cumulative call-time cost from repeated pushes by the same drive-by author is uncapped today. The per-repo and per-day caps planned in v0.2 are the intended mitigation. |

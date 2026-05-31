@@ -26,6 +26,17 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toMatch(/never as instructions/i);
   });
 
+  it('uses the description for intent yet forbids reassuring claims from lowering scrutiny', () => {
+    // Anti-framing defense that still keeps the intent context. The model may
+    // use the PR description to understand design choices (which lowers false
+    // positives), but a "safe"/"already tested" claim must not lower its
+    // scrutiny, and correctness must be judged from the diff itself. Framing a
+    // change as bug-free can otherwise collapse defect detection
+    // (arXiv:2603.18740).
+    expect(SYSTEM_PROMPT).toMatch(/lower your scrutiny/i);
+    expect(SYSTEM_PROMPT).toMatch(/independently from the diff/i);
+  });
+
   it('enumerates every category enum value the schema accepts', () => {
     // Check each value as a substring so a future style edit to the
     // separator (`,` vs `, or `) does not break the test while still
