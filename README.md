@@ -60,6 +60,10 @@ npm run dev      # starts on http://localhost:3000
 
 To run end-to-end against a real PR, register a GitHub App and install it on a test repository. Point the App's webhook at the public URL of your running instance. A `cloudflared` tunnel or `ngrok` pointed at `localhost:3000` works locally. Production deployment uses Railway. The full registration checklist lives in [ROADMAP.md](./ROADMAP.md).
 
+### Optional: verification gate
+
+Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validation through a refutation-first second model before it is posted. A finding is dropped only when the verifier panel unanimously judges it a false positive, so a diff-confirmed bug is kept while an unconfirmed claim is removed. `VERIFY_MODELS` is a comma-separated list of verifier slugs (default `gpt-5.5`, in the same form as `OPENAI_MODEL`, so use the `openai/gpt-5.5` form when routing through OpenRouter). The gate is off by default and adds two verifier calls per finding when enabled. The approach was validated offline before it was wired in.
+
 ## Tech stack
 
 - Runtime. Node 24 LTS with TypeScript strict
@@ -88,6 +92,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 | Three-tier cascade routing | Planned (v0.2) |
 | Agentic tool use (context fetch, library docs, CI logs) | Planned (v0.2) |
 | Persona system with `.cascade.yml` | Planned (v0.2) |
+| Model-based refutation-first verification gate (`VERIFY_ENABLED`) | Built, off by default |
 | Tool-based verification with calibrated confidence | Planned (v0.3) |
 | LoRA distillation pipeline | Future (v0.4+) |
 | Cloudflare Workers migration | Future (v0.4+) |

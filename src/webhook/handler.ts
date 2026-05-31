@@ -15,6 +15,7 @@ import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
 import { callReview } from '@/openai/review';
 import type { Finding } from '@/openai/schema';
+import { verifyFindings } from '@/openai/verify';
 
 type FileWithPatch = PullRequestFile & { patch: string };
 
@@ -324,7 +325,49 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       }
     }
 
-    const inlineComments: InlineReviewComment[] = validFindings.map((f) => ({
+    // v0.3 verification gate (opt-in via VERIFY_ENABLED). Each finding that
+    // passed the diff-anchor gate is audited against its file's diff; a finding
+    // is dropped only when the verifier panel unanimously refutes it. Off by
+    // default, so this stays a no-op until an operator enables it.
+    let findingsToPost = validFindings;
+    let verification:
+      | {
+          models: string[];
+          kept: number;
+          dropped: number;
+          errors: number;
+          usage: { inputTokens: number; outputTokens: number; cachedInputTokens: number };
+          cents?: number;
+        }
+      | undefined;
+    if (env.VERIFY_ENABLED && validFindings.length > 0) {
+      const patchByFile = new Map(filesWithPatch.map((f) => [f.filename, f.patch]));
+      const verified = await verifyFindings(validFindings, patchByFile, env.VERIFY_MODELS);
+      findingsToPost = verified.kept;
+      let cents: number | undefined;
+      try {
+        // Exact for the single-model default; approximate (rated at the first
+        // model's price) when several verifier models run.
+        cents = estimateCost(
+          env.VERIFY_MODELS[0] ?? result.model,
+          verified.usage.inputTokens,
+          verified.usage.outputTokens,
+          verified.usage.cachedInputTokens,
+        ).totalCents;
+      } catch {
+        // Verifier model has no pricing entry; usage is still traced below.
+      }
+      verification = {
+        models: env.VERIFY_MODELS,
+        kept: verified.kept.length,
+        dropped: verified.dropped.length,
+        errors: verified.errorCount,
+        usage: verified.usage,
+        cents,
+      };
+    }
+
+    const inlineComments: InlineReviewComment[] = findingsToPost.map((f) => ({
       path: f.file,
       line: f.line,
       side: 'RIGHT',
@@ -363,11 +406,12 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       details: {
         trigger: ctx.triggerEvent,
         totalFindings: result.review.findings.length,
-        postedFindings: validFindings.length,
+        postedFindings: findingsToPost.length,
         droppedFindings: droppedFindings.length,
         droppedFindingLocations: droppedFindings,
         filesTruncated: filesResult.truncated,
         usage: result.usage,
+        verification,
       },
     });
   } catch (err) {

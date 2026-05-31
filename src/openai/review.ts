@@ -8,7 +8,9 @@ import { ReviewOutput } from './schema';
 
 let cachedClient: OpenAI | undefined;
 
-function client(): OpenAI {
+// Exported so the verification gate (src/openai/verify.ts) reuses the same
+// cached client and OpenRouter routing rather than constructing its own.
+export function client(): OpenAI {
   if (cachedClient) return cachedClient;
   const env = getEnv();
   // Explicit 60s ceiling so a slow response cannot pin a review promise for
