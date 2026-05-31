@@ -32,6 +32,16 @@ export type Finding = z.infer<typeof Finding>;
 export const OverallAssessment = z.enum(['comment', 'request_changes', 'approve']);
 export type OverallAssessment = z.infer<typeof OverallAssessment>;
 
+// Output schema for the v0.3 verification gate. A second model audits each
+// finding the base review produced and returns whether the diff confirms it is
+// a real, worth-posting issue or a false positive. The gate keeps a finding
+// only when every verifier returns `real`.
+export const Verdict = z.object({
+  verdict: z.enum(['real', 'false_positive']),
+  reason: z.string().min(1),
+});
+export type Verdict = z.infer<typeof Verdict>;
+
 export const MAX_FINDINGS_PER_REVIEW = 5;
 
 export const ReviewOutput = z.object({

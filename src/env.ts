@@ -63,6 +63,26 @@ const EnvSchema = z.object({
       message: `OPENAI_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}. Add the model to PRICING in src/lib/cost.ts before pointing the bot at it.`,
     }),
   COST_CAP_CENTS_PER_REVIEW: z.coerce.number().positive().default(30),
+  // v0.3 verification gate. Off by default so deploying this code does not
+  // change review behavior until an operator opts in with VERIFY_ENABLED=true.
+  // When on, every finding that passes the diff-anchor gate is audited by each
+  // model in VERIFY_MODELS, and a finding is dropped only when the panel
+  // unanimously refutes it (see src/openai/verify.ts). VERIFY_MODELS is a
+  // comma-separated list of slugs in the same form as OPENAI_MODEL: bare names
+  // for the OpenAI API, or provider-prefixed (openai/gpt-5.5) for OpenRouter.
+  VERIFY_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  VERIFY_MODELS: z
+    .string()
+    .default('gpt-5.5')
+    .transform((s) =>
+      s
+        .split(',')
+        .map((m) => m.trim())
+        .filter(Boolean),
+    ),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
