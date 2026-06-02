@@ -11,6 +11,7 @@
 | Recall preservation through verifier | 8/8 real bugs kept |
 | Cross-vendor compatibility (2 models) | `gemini-3.1-pro-preview`: 9 findings, 20/22 PRs completed (2 incomplete-output errors); `claude-opus-4.8`: 0/22 PRs completed (provider-routing 404 on all 22) |
 | Grounding (full-file context) over the deployed model | No noise reduction: 26 → 28 findings, 3 → 5 confident criticals; the flagship 0.98 false positive recurred in 4/4 grounded runs |
+| Cross-file recall, 5 planted fixtures, full dependency in context | Grounding helped on 3 of 5 (hand-verified recall 1/15 → 8/15); the other 2 were missed even with the dependency in context |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -125,13 +126,36 @@ Full-file context, a superset of what retrieval-based tools surface, was necessa
 
 ---
 
+## Experiment 5: Does cross-file context improve recall?
+
+Experiment 4 tested grounding on the precision axis (same-file false positives) and found it did not help. This experiment tests the other axis, the one that motivates retrieval-based tools like Greptile: recall on bugs whose root cause lives in a file the diff does not touch.
+
+Five planted fixtures, each with a changed file (the diff) and an unchanged dependency. The bug sits on a changed line but is only detectable by reading the dependency: a call that passes the wrong number of arguments against the dependency's signature, an inverted use of a return contract (a validator that returns null when valid), an import of a symbol the dependency does not export, a unit mismatch against a documented parameter (milliseconds where seconds are expected), and a missing null check against a nullable return. gpt-5.4-mini reviewed each fixture under two conditions, three runs each: diff-only (the changed file alone, the bot's default) and grounded (the changed file plus the dependency's full content). A catch is a finding anchored to the changed line; each catch was then checked by hand against the planted bug.
+
+| Fixture | diff-only | grounded |
+|---|---|---|
+| `inverted-return-contract` | 0 / 3 | 3 / 3 |
+| `missing-export` | 0 / 3 | 3 / 3 |
+| `null-contract` | 1 / 3 | 2 / 3 |
+| `wrong-arg-count` | 0 / 3 | 0 / 3 |
+| `unit-mismatch` | 0 / 3 | 0 / 3 |
+| **Hand-verified total** | **1 / 15** | **8 / 15** |
+
+The raw anchored-finding count was 5/15 diff-only and 8/15 grounded. The diff-only figure overcounts, because the model often posted a hedged question or a comment about a different concern on the changed line, and the location-only filter accepts those. The table counts only findings that describe the planted bug, the same hand-judged criterion as Experiment 2.
+
+Grounding helped on three of the five bugs. Where the dependency stated an explicit contract that the model read (a null-on-valid return, a single exported symbol, a nullable return), the grounded model identified the bug that the diff-only model could not. On the other two (a wrong argument count against the dependency's signature, and a milliseconds-for-seconds unit mismatch) the grounded model missed the bug in all three runs even though the relevant signature was in its context.
+
+So cross-file context improved recall, but only where the model actually used the contract in front of it. Combined with Experiment 4, the pattern is consistent across both axes: the bottleneck is the model's use of available context, not the availability of context. That is why context-grounding and the verification gate are complementary rather than competing: grounding determines what the model can see, and the gate compensates for what the model does with it.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
 
 A refutation-first verification gate addresses this asymmetry. It removes findings the diff does not support and keeps findings the diff confirms. Run over mini's output, it removed 24 of the 26 findings while preserving every planted-bug catch, at the cost of two verifier calls per finding that reaches the gate.
 
-Adding full-file context did not substitute for the gate. The most confident false positive survived grounding in 4 of 4 runs and the confident-critical count did not fall, so context-grounding and verification are complementary rather than alternatives. The bottleneck is the model's calibration on the diff, which the gate targets directly.
+Adding full-file context did not substitute for the gate. The most confident false positive survived grounding in 4 of 4 runs and the confident-critical count did not fall, so context-grounding and verification are complementary rather than alternatives. Cross-file context did help recall on three of five planted cross-file bugs, but only where the model used the dependency's stated contract; the other two were missed even with the dependency in context. Across both axes the bottleneck is the model's use of context, not its availability, which is the calibration the gate targets directly.
 
 ---
 
@@ -143,6 +167,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 - **Same-vendor coverage.** The clean noise comparison and the verifier cover same-vendor models only. Same-vendor verifiers may share systematic failure modes with the base model, which could inflate apparent precision. Cross-vendor coverage remains future work, since the two cross-vendor models did not complete the panel cleanly in this run.
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
 - **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new confident criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of confident findings rather than a verified false-positive rate.
+- **Cross-file recall.** Experiment 5 uses five planted fixtures, not real bugs, scored by the author against the known planted bug, on one model (gpt-5.4-mini) at three runs per condition. It demonstrates the direction (cross-file context helps recall when the contract is read) rather than a precise rate, and a real cross-file bug dataset would be needed to measure recall in the wild.
 
 ---
 
@@ -169,6 +194,9 @@ npx tsx eval/grounding-eval.ts
 
 # Robustness check: re-run the flagship false positive under grounding four times
 npx tsx eval/grounding-axios-repeat.ts
+
+# Cross-file recall: diff-only vs grounded on five planted cross-file bugs
+npx tsx eval/crossfile-recall-eval.ts
 ```
 
-Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, `eval/eval-recall-results.jsonl`, and `eval/eval-results-grounded-mini.jsonl`. Recall preservation and the grounding robustness check print to stdout.
+Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, `eval/eval-recall-results.jsonl`, and `eval/eval-results-grounded-mini.jsonl`. Recall preservation, the grounding robustness check, and the cross-file recall experiment print to stdout.
