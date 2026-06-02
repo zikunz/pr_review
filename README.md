@@ -101,17 +101,18 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 
 ## Evaluation
 
-[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs five experiments, the first four over a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
+[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs six experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
 
 1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong. gpt-5.5 and gpt-5.3-codex posted 6 and 5 on the same code.
 2. **Recall test.** Eight diffs with one planted, diff-evident bug each. All three OpenAI models caught 8/8.
 3. **Verification layer.** A refutation-first second model audits each finding against the diff. Over mini's 26 findings it removed 24 (including all three confident criticals) and kept the 2 plausibly-real ones, and over the eight planted bugs it kept 8/8.
 4. **Grounding (precision axis).** Re-reviewing with the full file (the frontier "give the model codebase context" fix) did not reduce noise. Findings went 26 → 28 and criticals 3 → 5, and the flagship false positive recurred in 4/4 grounded runs with the relevant definition present in context.
 5. **Cross-file recall axis.** On five planted bugs whose cause lives in another file, giving the model that dependency raised hand-verified recall from 1/15 to 8/15, but only on the three where it used the stated contract. The other two were missed even with the dependency in context.
+6. **Cross-vendor verification.** Re-running the gate with cross-vendor verifiers over mini's 26 findings. Gemini 3.1 Pro killed 25/26 and Opus 4.8 killed 23/26, agreeing with the same-vendor panel on 23 to 25 of 26, so the gate's noise removal is not a same-vendor artifact. The one split was Opus keeping the axios false positive that needs out-of-diff context to refute.
 
 Across experiments 4 and 5 the bottleneck is consistently the model's *use* of context, not its availability, which is why context-grounding and the verification gate are complementary rather than competing.
 
-The harness and frozen data are in [`eval/`](./eval) and the run is reproducible with the commands in the evaluation document. Every number is checked against the raw result files. The writeup also lists the methodology's limitations (small sample, planted-bug recall only, same-vendor verifier, single coder, single grounding run per condition).
+The harness and frozen data are in [`eval/`](./eval) and the run is reproducible with the commands in the evaluation document. Every number is checked against the raw result files. The writeup also lists the methodology's limitations (small sample, planted-bug recall only, same-vendor noise comparison, single coder, single grounding run per condition).
 
 ## Limitations
 

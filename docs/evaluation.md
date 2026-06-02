@@ -12,6 +12,7 @@
 | Cross-vendor compatibility (2 models) | `gemini-3.1-pro-preview`: 9 findings, 20/22 PRs completed (2 incomplete-output errors); `claude-opus-4.8`: 0/22 PRs completed (provider-routing 404 on all 22) |
 | Grounding (full-file context) over the deployed model | No noise reduction: 26 → 28 findings, 3 → 5 critical findings; the flagship 0.98 false positive recurred in 4/4 grounded runs |
 | Cross-file recall, 5 planted fixtures, full dependency in context | Grounding helped on 3 of 5 (hand-verified recall 1/15 → 8/15); the other 2 were missed even with the dependency in context |
+| Cross-vendor verification over mini's 26 findings | Gemini 3.1 Pro killed 25/26, Opus 4.8 killed 23/26, both agreeing with the same-vendor panel on 23 to 25 of 26 |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -149,11 +150,29 @@ So cross-file context improved recall, but only where the model actually used th
 
 ---
 
+## Experiment 6: Does the verification gate work across vendors?
+
+Experiment 3 ran the gate with a same-vendor verifier panel (gpt-5.5 and gpt-5.3-codex). The Limitations section flags this risk. A verifier from the same family as the base model may share its blind spots, which could inflate the apparent precision gain. This experiment re-runs the gate over the same 26 findings mini posted, replacing the verifier with a cross-vendor model. Each verifier judged all 26 findings from the diff alone, with the same refutation-first instruction as Experiment 3.
+
+| Verifier | Vendor | Killed (false positive) | Agreed with same-vendor panel | mini's 3 confident criticals |
+|---|---|---|---|---|
+| gpt-5.5 + gpt-5.3-codex (baseline) | OpenAI | 24 / 26 | reference | all 3 killed |
+| gemini-3.1-pro-preview | Google | 25 / 26 | 25 / 26 | all 3 killed |
+| claude-opus-4.8 | Anthropic | 23 / 26 | 23 / 26 | 2 killed, 1 kept |
+
+All three independent verifiers, spanning three vendors, removed the bulk of mini's noise (23 to 25 of 26). The gate's noise reduction is therefore not an artifact of a same-vendor verifier sharing the base model's failure modes.
+
+The verifiers were not identical on the hard cases. Opus judged the axios `resolveConfig.js:59` false positive (confidence 0.98) as real, the one finding Experiment 4 showed requires code outside the diff to refute. A verifier that reads only the diff can be fooled by it, which is consistent with the cross-file result that the bottleneck is the use of context, not the verifier's vendor. Under the gate's unanimous-false-positive rule a multi-vendor panel keeps this finding, since one real vote blocks the drop, which is the conservative fail-open behavior the gate already uses.
+
+Cost was negligible. The Gemini run cost $0.36 and the Opus run cost $0.38 over the 26 findings, at OpenRouter prices verified on 2026-06-02 (Gemini 3.1 Pro at $2 and $12 per million input and output tokens, Opus 4.8 at $5 and $25). Opus returned a provider-routing 404 as a generator in Experiment 1 but completed all 26 calls as a verifier here, and the cause was not isolated to one request shape.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
 
-A refutation-first verification gate addresses this asymmetry. It removes findings the diff does not support and keeps findings the diff confirms. Run over mini's output, it removed 24 of the 26 findings while preserving every planted-bug catch, at the cost of two verifier calls per finding that reaches the gate.
+A refutation-first verification gate addresses this asymmetry. It removes findings the diff does not support and keeps findings the diff confirms. Run over mini's output, it removed 24 of the 26 findings while preserving every planted-bug catch, at the cost of two verifier calls per finding that reaches the gate. Cross-vendor verifiers reached the same verdicts on 23 to 25 of the 26 findings, so the effect does not depend on the verifier sharing the base model's vendor.
 
 Adding full-file context did not substitute for the gate. The most confident false positive survived grounding in 4 of 4 runs and the critical-severity count did not fall, so context-grounding and verification are complementary rather than alternatives. Cross-file context did help recall on three of five planted cross-file bugs, but only where the model used the dependency's stated contract. The other two were missed even with the dependency in context. Across both axes the bottleneck is the model's use of context, not its availability, which is the calibration the gate targets directly.
 
@@ -164,7 +183,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 - **Recall scope.** Recall was measured on planted, diff-evident bugs. A finding was counted as a catch if it was anchored to a valid diff line within the planted fixture's file. The pipeline did not verify that the finding described the planted bug or require any particular severity. Recall on subtle, cross-file, or semantic bugs is untested and would require a labeled dataset of known real regressions.
 - **Sample size and selection.** The noise measurement covers 22 merged PRs drawn as the most recent qualifying PRs from four high-profile, heavily reviewed repositories, a selection that likely understates false positive rates on lower-quality or internal code. At 22 PRs this is a method demonstration, not a precise rate.
 - **Scoring scope.** The stronger models' findings were counted, not individually scored for precision.
-- **Same-vendor coverage.** The clean noise comparison and the verifier cover same-vendor models only. Same-vendor verifiers may share systematic failure modes with the base model, which could inflate apparent precision. Cross-vendor coverage remains future work, since the two cross-vendor models did not complete the panel cleanly in this run.
+- **Same-vendor coverage.** Experiment 1's clean noise comparison covers same-vendor generators only. Experiment 6 addresses the verifier side by re-running the gate with cross-vendor verifiers (Gemini 3.1 Pro and Opus 4.8), which reached the same verdicts on 23 to 25 of 26 findings. Cross-vendor coverage of the base-model noise comparison itself remains future work, since Opus returned provider-routing 404s as a generator in the noise panel.
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
 - **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of critical-severity findings rather than a verified false-positive rate.
 - **Cross-file recall.** Experiment 5 uses five planted fixtures, not real bugs, scored by the author against the known planted bug, on one model (gpt-5.4-mini) at three runs per condition. It demonstrates the direction (cross-file context helps recall when the contract is read) rather than a precise rate, and a real cross-file bug dataset would be needed to measure recall in the wild.
@@ -197,6 +216,10 @@ npx tsx eval/grounding-axios-repeat.ts
 
 # Cross-file recall: diff-only vs grounded on five planted cross-file bugs
 npx tsx eval/crossfile-recall-eval.ts
+
+# Cross-vendor verification: re-run the gate with a non-OpenAI verifier
+npx tsx eval/crossvendor-verify.ts                                        # Gemini (default)
+CV_VERIFIERS=anthropic/claude-opus-4.8 npx tsx eval/crossvendor-verify.ts  # Opus
 ```
 
-Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, `eval/eval-recall-results.jsonl`, and `eval/eval-results-grounded-mini.jsonl`. Recall preservation, the grounding robustness check, and the cross-file recall experiment print to stdout.
+Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, `eval/eval-recall-results.jsonl`, `eval/eval-results-grounded-mini.jsonl`, and `eval/eval-verify-crossvendor-<verifier>.jsonl`. Recall preservation, the grounding robustness check, and the cross-file recall experiment print to stdout.
