@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import { CASCADE_DEFAULTS } from '@/lib/cascade';
 import { KNOWN_MODELS, normalizeModel } from '@/lib/cost';
 
 function loadDotenv(path: string): void {
@@ -83,6 +84,43 @@ const EnvSchema = z.object({
         .map((m) => m.trim())
         .filter(Boolean),
     ),
+  // v0.2 cascade routing. Off by default (CASCADE_ENABLED=false) so the bot
+  // continues to use OPENAI_MODEL for every review until an operator opts in.
+  // When enabled, the tier is chosen from the diff signals (see
+  // src/lib/cascade.ts) and the per-tier model slug is used instead of
+  // OPENAI_MODEL. All three tier models must be in the PRICING table.
+  CASCADE_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  // Model slugs for each cascade tier. Use bare names for the OpenAI API or
+  // provider-prefixed slugs (openai/gpt-5.4) when routing through OpenRouter.
+  CASCADE_TIER1_MODEL: z
+    .string()
+    .default(CASCADE_DEFAULTS.tier1Model)
+    .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
+      message: `CASCADE_TIER1_MODEL must resolve to one of: ${KNOWN_MODELS.join(', ')}`,
+    }),
+  CASCADE_TIER2_MODEL: z
+    .string()
+    .default(CASCADE_DEFAULTS.tier2Model)
+    .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
+      message: `CASCADE_TIER2_MODEL must resolve to one of: ${KNOWN_MODELS.join(', ')}`,
+    }),
+  CASCADE_TIER3_MODEL: z
+    .string()
+    .default(CASCADE_DEFAULTS.tier3Model)
+    .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
+      message: `CASCADE_TIER3_MODEL must resolve to one of: ${KNOWN_MODELS.join(', ')}`,
+    }),
+  // Patch character count threshold that divides Tier 2 from Tier 3. PRs
+  // whose total code-file patch is above this value are routed to the
+  // frontier model. Default matches CASCADE_DEFAULTS.tier2MaxChars.
+  CASCADE_TIER2_MAX_CHARS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(CASCADE_DEFAULTS.tier2MaxChars),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

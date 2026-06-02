@@ -10,6 +10,7 @@ import {
   type RepoCoordinates,
 } from '@/github/client';
 import { isValidCommentLocation, parseDiffLocations } from '@/github/diff';
+import { decideCascadeTier } from '@/lib/cascade';
 import { type CostBreakdown, CostCapExceededError, enforceCostCap, estimateCost } from '@/lib/cost';
 import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
@@ -270,11 +271,27 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       filesWithPatch.map((f) => ({ path: f.filename, patch: f.patch })),
     );
 
+    // v0.2 cascade routing. When CASCADE_ENABLED the tier is chosen from diff
+    // signals; otherwise OPENAI_MODEL is used as a single flat model.
+    const cascadeDecision = env.CASCADE_ENABLED
+      ? decideCascadeTier(
+          filesWithPatch.map((f) => ({ filename: f.filename, patch: f.patch })),
+          {
+            tier1Model: env.CASCADE_TIER1_MODEL,
+            tier2Model: env.CASCADE_TIER2_MODEL,
+            tier3Model: env.CASCADE_TIER3_MODEL,
+            tier2MaxChars: env.CASCADE_TIER2_MAX_CHARS,
+          },
+        )
+      : null;
+
+    const modelForReview = cascadeDecision?.model ?? env.OPENAI_MODEL;
+
     const result = await callReview({
       prTitle: pr.title,
       prBody: pr.body,
       files: filesWithPatch.map((f) => ({ filename: f.filename, patch: f.patch })),
-      model: env.OPENAI_MODEL,
+      model: modelForReview,
     });
 
     let cost: CostBreakdown;
@@ -405,6 +422,13 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       durationMs: Date.now() - start,
       details: {
         trigger: ctx.triggerEvent,
+        cascade: cascadeDecision
+          ? {
+              tier: cascadeDecision.tier,
+              model: cascadeDecision.model,
+              reason: cascadeDecision.reason,
+            }
+          : null,
         totalFindings: result.review.findings.length,
         postedFindings: findingsToPost.length,
         droppedFindings: droppedFindings.length,
