@@ -6,14 +6,14 @@
 // decision without calling any LLM keeps latency low and avoids the recursive
 // cost of calling a model just to decide which model to call.
 //
-// Tier 1 — docs/prose only. Every changed file is human-readable text,
+// Tier 1, docs/prose only. Every changed file is human-readable text,
 //   media, or a lock file with no executable semantics. Fine for README
 //   edits, changelogs, image updates, and dependency lock bumps.
 //
-// Tier 2 — code changes, small diff (≤ CASCADE_TIER2_MAX_CHARS patch chars).
+// Tier 2, code changes, small diff (≤ CASCADE_TIER2_MAX_CHARS patch chars).
 //   Standard review. Handles the majority of routine code PRs.
 //
-// Tier 3 — code changes, large diff (> CASCADE_TIER2_MAX_CHARS patch chars).
+// Tier 3, code changes, large diff (> CASCADE_TIER2_MAX_CHARS patch chars).
 //   Full-power review. Large refactors, cross-file changes, security-sensitive
 //   diffs that benefit from a frontier model.
 //
@@ -29,7 +29,7 @@
 // `package-lock.json` land here explicitly and are not confused with
 // `package.json` (which has executable semantics and is intentionally excluded).
 const DOCS_BASENAMES = new Set([
-  // Lock files — generated, no executable semantics authored by humans.
+  // Lock files are generated, with no executable semantics authored by humans.
   'package-lock.json',
   'yarn.lock',
   'pnpm-lock.yaml',
@@ -38,8 +38,8 @@ const DOCS_BASENAMES = new Set([
   'Gemfile.lock',
   'poetry.lock',
   'composer.lock',
-  'go.sum', // Go module checksum database — generated, not authored
-  // Template / example env files — not live config.
+  'go.sum', // Go module checksum database, generated, not authored
+  // Template / example env files, not live config.
   '.env.example',
   '.env.sample',
   '.env.template',
@@ -59,7 +59,7 @@ const DOCS_BASENAMES = new Set([
 // extensions cover both pure-config files (docs-like) AND executable-config
 // files like `package.json`, `tsconfig.json`, `jest.config.json`, `Cargo.toml`,
 // etc. Using the DOCS_BASENAMES set above for known-safe JSON/YAML names is the
-// correct approach — adding an entire extension to this set would silently route
+// correct approach. Adding an entire extension to this set would silently route
 // all JSON PRs (including dependency/script changes) to the cheapest model.
 const DOCS_EXTENSIONS = new Set([
   // Prose documentation
@@ -86,9 +86,9 @@ const DOCS_EXTENSIONS = new Set([
 
 // Returns true when the filename is docs/media only (Tier 1 eligible).
 // Two-phase check:
-//   Phase 1 — full basename match against DOCS_BASENAMES (covers lock files,
+//   Phase 1, full basename match against DOCS_BASENAMES (covers lock files,
 //              dotfiles, and multi-dot names like `package-lock.json`).
-//   Phase 2 — last-extension match against DOCS_EXTENSIONS (covers prose and
+//   Phase 2, last-extension match against DOCS_EXTENSIONS (covers prose and
 //              media by extension, e.g. `.md`, `.png`).
 // A file with no extension (e.g. `Makefile`, `Dockerfile`, `Procfile`) is
 // classified as code because it contains executable content.
@@ -128,7 +128,7 @@ export interface CascadeConfig {
 
 // Default config. Individual fields are overridable via env vars in env.ts.
 export const CASCADE_DEFAULTS: CascadeConfig = {
-  tier1Model: 'openai/gpt-5.3-codex',
+  tier1Model: 'openai/gpt-5.4-mini',
   tier2Model: 'openai/gpt-5.4',
   tier3Model: 'openai/gpt-5.5',
   tier2MaxChars: 8_000,
@@ -170,7 +170,7 @@ export function selectReviewModel(
 /**
  * Classify a set of PR files into a cascade tier.
  *
- * Pure function — no IO, no side effects, fully testable.
+ * Pure function, no IO, no side effects, fully testable.
  *
  * @param files  Array of {filename, patch} pairs (only files with a patch).
  * @param config Tier model slugs and the Tier 2 patch-size threshold.

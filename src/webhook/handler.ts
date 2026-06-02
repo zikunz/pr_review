@@ -272,7 +272,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
     );
 
     // v0.2 cascade routing. When CASCADE_ENABLED the tier is chosen from diff
-    // signals; otherwise OPENAI_MODEL is used as a single flat model. The
+    // signals. Otherwise OPENAI_MODEL is used as a single flat model. The
     // selection logic lives in selectReviewModel (pure, unit-tested).
     const { model: modelForReview, cascade: cascadeDecision } = selectReviewModel(
       env.CASCADE_ENABLED,
@@ -342,7 +342,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
     }
 
     // v0.3 verification gate (opt-in via VERIFY_ENABLED). Each finding that
-    // passed the diff-anchor gate is audited against its file's diff; a finding
+    // passed the diff-anchor gate is audited against its file's diff. A finding
     // is dropped only when the verifier panel unanimously refutes it. Off by
     // default, so this stays a no-op until an operator enables it.
     let findingsToPost = validFindings;
@@ -362,7 +362,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       findingsToPost = verified.kept;
       let cents: number | undefined;
       try {
-        // Exact for the single-model default; approximate (rated at the first
+        // Exact for the single-model default. Approximate (rated at the first
         // model's price) when several verifier models run.
         cents = estimateCost(
           env.VERIFY_MODELS[0] ?? result.model,
@@ -371,7 +371,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
           verified.usage.cachedInputTokens,
         ).totalCents;
       } catch {
-        // Verifier model has no pricing entry; usage is still traced below.
+        // Verifier model has no pricing entry. Usage is still traced below.
       }
       verification = {
         models: env.VERIFY_MODELS,

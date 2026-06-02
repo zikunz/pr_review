@@ -48,5 +48,5 @@ After a fix is deployed, the reporter is credited in release notes unless anonym
 - GitHub Actions CI runs gitleaks on every push to `main` and every pull request targeting `main` to scan for accidentally committed secrets.
 - Public webhook endpoints validate every request signature before any business logic.
 - The `@<bot-name>` manual re-trigger path is restricted to commenters whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR`. Outside contributors cannot drive cost amplification by spamming mentions on open pull requests.
-- Trace records emitted to disk and stdout strip both sensitive-named object keys and secret-shaped substrings (`sk-`, `ghp_`, `ghs_`, `gho_`, `github_pat_`, PEM blocks) so an upstream error message that quotes a credential does not land in logs verbatim.
+- Trace records emitted to disk and stdout strip both sensitive-named object keys and secret-shaped substrings (`sk-`, `sk-or-`, `ghp_`, `ghs_`, `gho_`, `github_pat_`, signed JWTs, PEM blocks) so an upstream error message that quotes a credential does not land in logs verbatim.
 - Outbound calls to GitHub carry a 30-second `AbortSignal.timeout`. The OpenAI client has an explicit 60-second ceiling. A stuck connection cannot pin a review promise for the lifetime of the container.

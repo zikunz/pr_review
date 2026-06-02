@@ -7,11 +7,11 @@
  * is the bot's own review logic, not a reimplementation.
  *
  * Two stages so every model sees the SAME PRs (fair comparison):
- *   npx tsx eval/eval-replay.ts --select            (fetch + freeze the PR set; no key)
+ *   npx tsx eval/eval-replay.ts --select            (fetch + freeze the PR set, no key)
  *   npx tsx eval/eval-replay.ts --model <slug>      (run one model over the frozen set)
  *
  * The --model stage needs .env.local with OPENAI_API_KEY (+ OPENAI_BASE_URL).
- * PRs are fetched via the local `gh` auth; no GitHub App key is needed, so the
+ * PRs are fetched via the local `gh` auth. No GitHub App key is needed, so the
  * dummy GitHub values below only satisfy env validation.
  *
  * Output: eval/eval-results-<model>.jsonl, one line per PR, each posted
@@ -25,7 +25,7 @@ import { isValidCommentLocation, parseDiffLocations } from '@/github/diff';
 import type { PromptFile } from '@/openai/prompt';
 import { callReview } from '@/openai/review';
 
-// getEnv() validates these; the replay never uses GitHub App auth (PRs come via
+// getEnv() validates these. The replay never uses GitHub App auth (PRs come via
 // the gh CLI). Force valid-shaped dummies so validation passes regardless.
 process.env.GITHUB_APP_ID = 'replay-unused';
 process.env.GITHUB_APP_PRIVATE_KEY = `replay-unused-${'x'.repeat(120)}`;

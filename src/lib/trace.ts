@@ -37,9 +37,13 @@ const SENSITIVE_KEY_PATTERN =
 // a URL path segment like `/sk-route-handler-not-found/...` that happens
 // to begin with `sk-` and continue with hyphenated words does not
 // trigger a false positive. Legacy bare `sk-` keys are 48 alphanumeric
-// chars after the prefix, which still matches the tighter body class.
+// chars after the prefix, which still matches the tighter body class. The
+// project's primary gateway is OpenRouter, whose keys carry hyphens
+// (`sk-or-v1-...`), so a dedicated `sk-or-` branch is required because the bare
+// `sk-` branch stops at the first hyphen. A signed GitHub App JWT
+// (`eyJ....eyJ....sig`) is also redacted as defense-in-depth.
 const SECRET_VALUE_PATTERN =
-  /sk-proj-[A-Za-z0-9_-]{20,}|sk-svcacct-[A-Za-z0-9_-]{20,}|sk-admin-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9]{36,}|gho_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]+?-----END [A-Z ]+PRIVATE KEY-----/g;
+  /sk-proj-[A-Za-z0-9_-]{20,}|sk-svcacct-[A-Za-z0-9_-]{20,}|sk-admin-[A-Za-z0-9_-]{20,}|sk-or-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9]{36,}|gho_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]+?-----END [A-Z ]+PRIVATE KEY-----/g;
 const REDACTED = '[REDACTED]';
 const MAX_DEPTH = 6;
 const MAX_STRING_CHARS = 4000;

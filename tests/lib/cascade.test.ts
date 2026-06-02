@@ -4,11 +4,31 @@ import { CASCADE_DEFAULTS, decideCascadeTier, selectReviewModel } from '@/lib/ca
 const cfg = CASCADE_DEFAULTS;
 
 // Helper: build a file entry. Use the real filename so isDocsFile classifies it
-// correctly based on extension/basename — do not use a generic 'file.ts' for
+// correctly based on extension/basename. Do not use a generic 'file.ts' for
 // everything, since the classification depends on the actual filename.
 const file = (filename: string, chars = 100) => ({ filename, patch: 'x'.repeat(chars) });
 
-// ---------- Tier 1 — docs/prose/media only ----------
+// Pin the default tier -> model mapping to literal slugs. The per-tier `describe`
+// blocks below assert against `cfg.tierNModel`, which is self-referential: a
+// wrong or swapped default would still pass them. These literals fail loudly if
+// CASCADE_DEFAULTS is ever edited to the wrong model for a tier.
+describe('CASCADE_DEFAULTS: pinned tier model slugs', () => {
+  it('routes a docs-only diff (Tier 1) to the cheap model', () => {
+    expect(decideCascadeTier([file('README.md')], cfg).model).toBe('openai/gpt-5.4-mini');
+  });
+  it('routes a small code diff (Tier 2) to the mid model', () => {
+    expect(decideCascadeTier([file('src/a.ts', cfg.tier2MaxChars)], cfg).model).toBe(
+      'openai/gpt-5.4',
+    );
+  });
+  it('routes a large code diff (Tier 3) to the frontier model', () => {
+    expect(decideCascadeTier([file('src/a.ts', cfg.tier2MaxChars + 1)], cfg).model).toBe(
+      'openai/gpt-5.5',
+    );
+  });
+});
+
+// ---------- Tier 1, docs/prose/media only ----------
 
 describe('Tier 1: docs/prose/media-only diff', () => {
   it('single Markdown file → Tier 1', () => {
@@ -102,8 +122,8 @@ describe('Tier 1: docs/prose/media-only diff', () => {
 // ---------- Tier 1 safety: JSON/YAML/TOML configs are NOT docs ----------
 
 describe('JSON/YAML/TOML executable config files → NOT Tier 1', () => {
-  // package.json has scripts, dependencies, exports — executable config.
-  it('package.json → Tier 2 (NOT docs — executable config)', () => {
+  // package.json has scripts, dependencies, and exports, so it is executable config.
+  it('package.json → Tier 2 (NOT docs, executable config)', () => {
     const d = decideCascadeTier([file('package.json')], cfg);
     expect(d.tier).toBe(2);
     expect(d.codeFileCount).toBe(1);
@@ -117,11 +137,11 @@ describe('JSON/YAML/TOML executable config files → NOT Tier 1', () => {
     expect(decideCascadeTier([file('jest.config.json')], cfg).tier).toBe(2);
   });
 
-  it('.github/workflows/ci.yml → Tier 2 (NOT docs — CI config has executable semantics)', () => {
+  it('.github/workflows/ci.yml → Tier 2 (NOT docs, CI config has executable semantics)', () => {
     expect(decideCascadeTier([file('.github/workflows/ci.yml')], cfg).tier).toBe(2);
   });
 
-  it('Cargo.toml → Tier 2 (NOT docs — has scripts and feature flags)', () => {
+  it('Cargo.toml → Tier 2 (NOT docs, has scripts and feature flags)', () => {
     expect(decideCascadeTier([file('Cargo.toml')], cfg).tier).toBe(2);
   });
 
@@ -130,7 +150,7 @@ describe('JSON/YAML/TOML executable config files → NOT Tier 1', () => {
   });
 });
 
-// ---------- Tier 2 — code, small diff ----------
+// ---------- Tier 2, code, small diff ----------
 
 describe('Tier 2: small code diff', () => {
   it('single small TypeScript file → Tier 2', () => {
@@ -194,7 +214,7 @@ describe('Tier 2: small code diff', () => {
   });
 });
 
-// ---------- Tier 3 — large code diff ----------
+// ---------- Tier 3, large code diff ----------
 
 describe('Tier 3: large code diff', () => {
   it('single large TypeScript file → Tier 3', () => {
@@ -255,7 +275,7 @@ describe('Edge cases', () => {
 
   it('pure dotfile not in DOCS_BASENAMES (.hidden) → code → Tier 2', () => {
     // .hidden: phase1 miss (not in DOCS_BASENAMES), lastDot=0 → returns false.
-    // Classified as code — correct: unknown dotfiles may have executable content.
+    // Classified as code, which is correct because unknown dotfiles may have executable content.
     const d = decideCascadeTier([{ filename: '.hidden', patch: 'x'.repeat(100) }], cfg);
     expect(d.codeFileCount).toBe(1);
     expect(d.tier).toBe(2);
@@ -285,7 +305,7 @@ describe('Edge cases', () => {
   });
 });
 
-// ---------- selectReviewModel — the handler wiring ----------
+// ---------- selectReviewModel, the handler wiring ----------
 
 describe('selectReviewModel: cascade on/off wiring', () => {
   const flat = 'openai/gpt-5.4-mini';

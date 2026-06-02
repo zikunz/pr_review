@@ -22,7 +22,7 @@ export function client(): OpenAI {
   };
   // When OPENAI_BASE_URL points at an OpenAI-compatible gateway (OpenRouter),
   // route through it. OpenRouter reads two optional attribution headers for
-  // its app-ranking leaderboard; they are ignored by OpenAI and other
+  // its app-ranking leaderboard. They are ignored by OpenAI and other
   // gateways, so only attach them when the URL is actually OpenRouter.
   if (env.OPENAI_BASE_URL) {
     options.baseURL = env.OPENAI_BASE_URL;

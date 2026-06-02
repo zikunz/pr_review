@@ -129,6 +129,8 @@ pr_review/
 │       ├── verify.ts         HMAC SHA-256 with constant time compare
 │       └── handler.ts        dispatch by event and run review pipeline
 ├── tests/                    Vitest specs, mirror src layout
+├── eval/                     offline evaluation harness and frozen results
+├── docs/                     evaluation writeup and methodology
 ├── .github/
 │   ├── workflows/ci.yml      typecheck, lint, test, gitleaks
 │   ├── PULL_REQUEST_TEMPLATE.md
@@ -147,7 +149,7 @@ pr_review/
 └── .env.example
 ```
 
-Future versions add `eval/` for Promptfoo fixtures, `infra/` for database schemas, and `training/` for fine-tune scripts.
+Future versions add `infra/` for database schemas and `training/` for fine-tune scripts.
 
 ---
 

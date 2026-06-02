@@ -4,8 +4,8 @@
  * resolveConfig.js:59 recurs. If it appears across runs, "full-file context does
  * not fix the flagship confident hallucination" is robust to LLM non-determinism.
  *
- * Uses the SAME grounded prompt construction as .local/grounding-eval.ts.
- * Run: npx tsx .local/grounding-axios-repeat.ts
+ * Uses the SAME grounded prompt construction as eval/grounding-eval.ts.
+ * Run: npx tsx eval/grounding-axios-repeat.ts
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';

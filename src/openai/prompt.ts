@@ -85,7 +85,7 @@ function clipForPrompt(text: string, max: number): string {
 
 // The PR title and description are sent to the model as context for author
 // intent and design choices, which helps it avoid flagging deliberate decisions
-// as defects. The system prompt frames them as untrusted: a reassuring claim
+// as defects. The system prompt frames them as untrusted. A reassuring claim
 // ("safe", "already tested") must not lower the model's scrutiny. This balances
 // the value of intent context against confirmation-bias framing risk (see
 // "Measuring and Exploiting Confirmation Bias in LLM-Assisted Security Code

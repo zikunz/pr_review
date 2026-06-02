@@ -34,7 +34,7 @@ async function shutdown(signal: string): Promise<void> {
 
   try {
     // Drain the HTTP listener first, then snapshot in-flight reviews. The
-    // two cannot run in parallel: a webhook whose connection was accepted
+    // two cannot run in parallel. A webhook whose connection was accepted
     // just before SIGTERM finishes its async handler AFTER the request
     // body read resolves, and that handler calls `scheduleReview` which
     // adds a new promise to the in-flight set. If `drainInFlightReviews`

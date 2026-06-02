@@ -1,8 +1,8 @@
 /**
  * Grounding experiment (v0.4 candidate). Tests the canonical frontier
- * best-practice — review with surrounding code, not just the diff hunk
- * ("grounding", per Greptile / CodeRabbit / arXiv:2510.10290) — against the
- * project's own measured failure mode: mini's three confident (0.96-0.98)
+ * best-practice of reviewing with surrounding code, not just the diff hunk
+ * ("grounding", per Greptile / CodeRabbit / arXiv:2510.10290), against the
+ * project's own measured failure mode. Mini's three confident (0.96-0.98)
  * false positives were all diff-only-context artifacts (the disambiguating
  * code lived OUTSIDE the diff).
  *
@@ -12,8 +12,8 @@
  * the only variable is the added file context. Compare the confident-critical
  * false positives against the diff-only baseline.
  *
- * Run: npx tsx .local/grounding-eval.ts
- * Output: .local/eval-results-grounded-mini.jsonl
+ * Run: npx tsx eval/grounding-eval.ts
+ * Output: eval/eval-results-grounded-mini.jsonl
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -24,7 +24,7 @@ import { buildUserPrompt, SYSTEM_PROMPT } from '@/openai/prompt';
 import { client } from '@/openai/review';
 import { type Finding, ReviewOutput } from '@/openai/schema';
 
-// getEnv() validates GitHub App vars; real .env.local OpenRouter values win.
+// getEnv() validates GitHub App vars. Real .env.local OpenRouter values win.
 process.env.GITHUB_APP_ID ||= 'grounding-unused';
 process.env.GITHUB_APP_PRIVATE_KEY ||= `grounding-unused-${'x'.repeat(120)}`;
 process.env.GITHUB_WEBHOOK_SECRET ||= `grounding-unused-${'x'.repeat(40)}`;
@@ -119,7 +119,7 @@ async function reviewGrounded(pr: FrozenPr, fullFiles: Map<string, string>): Pro
 async function main(): Promise<void> {
   const root = process.cwd();
   const prs: FrozenPr[] = JSON.parse(readFileSync(resolve(root, 'eval/eval-prs.json'), 'utf8'));
-  const out = resolve(root, '.local/eval-results-grounded-mini.jsonl');
+  const out = resolve(root, 'eval/eval-results-grounded-mini.jsonl');
   const lines: string[] = [];
 
   console.log(`Grounding run: model=${MODEL}, ${prs.length} PRs\n`);
@@ -128,7 +128,7 @@ async function main(): Promise<void> {
     let sha: string;
     try {
       sha = headSha(pr.repo, pr.pr);
-    } catch (e) {
+    } catch {
       console.log(`${pr.repo}#${pr.pr}: head SHA fetch failed, skipping`);
       lines.push(JSON.stringify({ repo: pr.repo, pr: pr.pr, error: 'head sha fetch failed' }));
       continue;

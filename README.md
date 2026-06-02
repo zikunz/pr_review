@@ -14,7 +14,7 @@ PR Cascade is a GitHub App that listens for pull request events and posts a stru
 
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md). An offline evaluation of review quality is in [docs/evaluation.md](./docs/evaluation.md).
 
-The headline finding from that evaluation: across 22 real merged pull requests, the cheap deployed model is noisy (26 findings, nearly all false positives) while stronger models stay quiet on the same code, yet every model catches 100% of planted, diff-evident bugs. So for code review the differentiator is precision, not recall. A refutation-first verification gate built on that insight removes 24 of those 26 noisy findings while preserving every planted-bug catch.
+That evaluation produced a clear headline finding. Across 22 real merged pull requests, the cheap deployed model is noisy (26 findings, nearly all false positives) while stronger models stay quiet on the same code, yet every OpenAI model tested catches 100% of planted, diff-evident bugs. So for code review the differentiator is precision, not recall. A refutation-first verification gate built on that insight removes 24 of those 26 noisy findings while preserving every planted-bug catch.
 
 ## Architecture (v0.1)
 
@@ -32,7 +32,7 @@ Return 202 Accepted, then async pipeline
    build prompt and call OpenAI with a Zod schema response_format
    drop any finding that does not reference a line in the diff
    post a Review with inline comments via the line+side API
-   append duration and outcome to stdout and a local trace file (cost on the success path)
+   append duration, outcome, and cost (on success) to stdout and a local trace file
 ```
 
 ## Why this exists
@@ -64,7 +64,7 @@ To run end-to-end against a real PR, register a GitHub App and install it on a t
 
 ### Optional: verification gate
 
-Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validation through a refutation-first second model before it is posted. A finding is dropped only when the verifier panel unanimously judges it a false positive, so a diff-confirmed bug is kept while an unconfirmed claim is removed. `VERIFY_MODELS` is a comma-separated list of verifier slugs (default `gpt-5.5`, in the same form as `OPENAI_MODEL`, so use the `openai/gpt-5.5` form when routing through OpenRouter). The gate is off by default and adds two verifier calls per finding when enabled. The approach was validated offline before it was wired in.
+Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validation through a refutation-first second model before it is posted. A finding is dropped only when the verifier panel unanimously judges it a false positive, so a diff-confirmed bug is kept while an unconfirmed claim is removed. `VERIFY_MODELS` is a comma-separated list of verifier slugs (default `gpt-5.5`, in the same form as `OPENAI_MODEL`, so use the `openai/gpt-5.5` form when routing through OpenRouter). The gate is off by default and adds one verifier call per finding for each model in `VERIFY_MODELS`, so the default single-model panel adds one call per finding. The approach was validated offline before it was wired in.
 
 ## Tech stack
 
@@ -103,15 +103,15 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 
 [docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs five experiments, the first four over a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
 
-1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong; gpt-5.5 and gpt-5.3-codex posted 5 and 6 on the same code.
+1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong. gpt-5.5 and gpt-5.3-codex posted 6 and 5 on the same code.
 2. **Recall test.** Eight diffs with one planted, diff-evident bug each. All three OpenAI models caught 8/8.
 3. **Verification layer.** A refutation-first second model audits each finding against the diff. Over mini's 26 findings it removed 24 (including all three confident criticals) and kept the 2 plausibly-real ones, and over the eight planted bugs it kept 8/8.
-4. **Grounding (precision axis).** Re-reviewing with the full file (the frontier "give the model codebase context" fix) did not reduce noise: findings went 26 → 28 and confident criticals 3 → 5, and the flagship false positive recurred in 4/4 grounded runs with the relevant definition present in context.
-5. **Cross-file recall axis.** On five planted bugs whose cause lives in another file, giving the model that dependency raised hand-verified recall from 1/15 to 8/15, but only on the three where it used the stated contract; the other two were missed even with the dependency in context.
+4. **Grounding (precision axis).** Re-reviewing with the full file (the frontier "give the model codebase context" fix) did not reduce noise. Findings went 26 → 28 and criticals 3 → 5, and the flagship false positive recurred in 4/4 grounded runs with the relevant definition present in context.
+5. **Cross-file recall axis.** On five planted bugs whose cause lives in another file, giving the model that dependency raised hand-verified recall from 1/15 to 8/15, but only on the three where it used the stated contract. The other two were missed even with the dependency in context.
 
 Across experiments 4 and 5 the bottleneck is consistently the model's *use* of context, not its availability, which is why context-grounding and the verification gate are complementary rather than competing.
 
-The harness and frozen data are in [`eval/`](./eval) and the run is reproducible with the commands in the evaluation document. Every number is checked against the raw result files; the writeup also lists the methodology's limitations (small sample, planted-bug recall only, same-vendor verifier, single coder, single grounding run per condition).
+The harness and frozen data are in [`eval/`](./eval) and the run is reproducible with the commands in the evaluation document. Every number is checked against the raw result files. The writeup also lists the methodology's limitations (small sample, planted-bug recall only, same-vendor verifier, single coder, single grounding run per condition).
 
 ## Limitations
 

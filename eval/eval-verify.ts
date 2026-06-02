@@ -4,7 +4,7 @@
  * Takes the deployed model's (gpt-5.4-mini) 26 posted findings from the baseline
  * eval and runs a refutation-first verifier panel (gpt-5.5 + gpt-5.3-codex) over
  * each one, judging real vs false_positive FROM THE DIFF ALONE. Measures how many
- * of mini's findings the panel kills — i.e., whether a verification layer cuts
+ * of mini's findings the panel kills, i.e., whether a verification layer cuts
  * the noise mini produced (especially its 3 confident hallucinations).
  *
  * Run: npx tsx eval/eval-verify.ts   (needs .env.local with OPENAI_API_KEY/BASE_URL)

@@ -241,6 +241,22 @@ describe('redactForTrace', () => {
     expect(redactForTrace(realShape)).toBe('[REDACTED]');
   });
 
+  it('redacts an OpenRouter sk-or- key (the project default key shape)', () => {
+    // OpenRouter is the documented primary inference gateway and its keys carry
+    // hyphens (sk-or-v1-...). The tighter bare `sk-` branch stops at the first
+    // hyphen, so a dedicated sk-or- branch is required to redact the full token.
+    const key = 'sk-or-v1-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd';
+    expect(redactForTrace(`OpenRouter returned 401 for ${key} today`)).toBe(
+      'OpenRouter returned 401 for [REDACTED] today',
+    );
+  });
+
+  it('redacts a signed GitHub App JWT', () => {
+    const jwt =
+      'eyJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE2MDAwMDAwMDAsImlzcyI6IjEyMyJ9.AAAABBBBCCCCDDDDEEEEFFFF';
+    expect(redactForTrace(`token mint failed: ${jwt}`)).toBe('token mint failed: [REDACTED]');
+  });
+
   it('redacts a GitHub installation token embedded in an error message', () => {
     const out = redactForTrace('Authorization: Bearer ghs_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIII');
     expect(out).toBe('Authorization: Bearer [REDACTED]');

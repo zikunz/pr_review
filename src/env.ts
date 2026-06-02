@@ -83,7 +83,10 @@ const EnvSchema = z.object({
         .split(',')
         .map((m) => m.trim())
         .filter(Boolean),
-    ),
+    )
+    .refine((models) => models.every((m) => KNOWN_MODELS.includes(normalizeModel(m))), {
+      message: `VERIFY_MODELS must each resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
+    }),
   // v0.2 cascade routing. Off by default (CASCADE_ENABLED=false) so the bot
   // continues to use OPENAI_MODEL for every review until an operator opts in.
   // When enabled, the tier is chosen from the diff signals (see

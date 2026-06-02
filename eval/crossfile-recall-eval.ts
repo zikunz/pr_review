@@ -9,14 +9,14 @@
  * Five planted fixtures. Each has fileA (the changed file / diff) and fileB
  * (an unchanged dependency). The bug is on a changed line in fileA but is only
  * detectable by reading fileB. Two conditions, each run K times:
- *   - diff-only : fileA diff alone (the bot's default; expected to MISS)
+ *   - diff-only : fileA diff alone (the bot's default, expected to MISS)
  *   - grounded  : fileA diff + fileB full content (expected to CATCH)
  *
  * "Caught" = the model posts a finding anchored to fileA's changed line. Each
  * caught finding's message is printed so it can be checked by hand against the
  * planted bug (the same honest criterion as the recall test in Experiment 2).
  *
- * Run: npx tsx .local/crossfile-recall-eval.ts
+ * Run: npx tsx eval/crossfile-recall-eval.ts
  */
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { isValidCommentLocation, parseDiffLocations } from '@/github/diff';
@@ -34,7 +34,7 @@ const MAX_COMPLETION_TOKENS = 4000;
 
 interface Fixture {
   id: string;
-  title: string; // neutral PR title — must NOT hint at the bug
+  title: string; // neutral PR title, must NOT hint at the bug
   bug: string; // the planted cross-file bug, for hand-checking
   fileA: { filename: string; patch: string };
   fileB: { filename: string; content: string };
@@ -128,6 +128,7 @@ const FIXTURES: Fixture[] = [
       patch: [
         '@@ -8,3 +8,4 @@ export function startSession(data) {',
         '   const id = newId();',
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source under review, not a JS template literal
         '+  setWithTtl(`session:${id}`, data, 30 * 60 * 1000);',
         '   return id;',
         ' }',

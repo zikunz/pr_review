@@ -6,7 +6,7 @@ import { type Finding, Verdict } from './schema';
 // Same generous ceiling the offline eval used. Reasoning-capable verifier
 // models spend hidden tokens before emitting the tiny JSON verdict, and a
 // 4000-token cap truncated them mid-reasoning. The verdict payload itself is a
-// few dozen tokens; this only buys headroom for the reasoning.
+// few dozen tokens. This only buys headroom for the reasoning.
 const VERIFY_MAX_COMPLETION_TOKENS = 16_000;
 
 export interface VerifierUsage {
@@ -41,7 +41,7 @@ export interface VerifyResult {
 // explicitly returns `false_positive`. A single `real`, an `error` (a verifier
 // call that failed), or a split panel all keep the finding. This reproduces the
 // offline eval's removal rule (a finding was removed only when both verifiers
-// said false_positive) while failing open: an infrastructure failure or a
+// said false_positive) while failing open. An infrastructure failure or a
 // disagreement never silently suppresses a finding that might be a real bug.
 // With no verdicts at all the gate is a no-op and the finding is kept.
 export function decideKeep(verdicts: SingleVerdict[]): boolean {
@@ -85,7 +85,7 @@ async function verifyOne(
 }
 
 // Run each finding through every verifier model and keep the ones the panel
-// does not unanimously refute. Verifiers run sequentially: reviews are already
+// does not unanimously refute. Verifiers run sequentially because reviews are already
 // fire-and-forget background work, so latency is not user-facing, and running
 // several gateway calls at once was observed to trigger connection resets.
 export async function verifyFindings(
