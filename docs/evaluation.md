@@ -9,10 +9,12 @@
 | Recall test, 8 planted bugs, 3 models | 8/8 caught by every model (diff-anchored fixtures) |
 | Verification layer over mini's 26 findings | 24 removed, 2 kept, 0 split (92% of mini's findings) |
 | Recall preservation through verifier | 8/8 real bugs kept |
-| Cross-vendor compatibility (2 models) | `gemini-3.1-pro-preview`: 9 findings, 20/22 PRs completed (2 incomplete-output errors); `claude-opus-4.8`: 0/22 PRs completed (provider-routing 404 on all 22) |
+| Cross-vendor compatibility (2 models) | `gemini-3.1-pro-preview`: 9 findings, 20/22 PRs completed (2 incomplete-output errors); `claude-opus-4.8`: 0/22 as a generator (provider error; completes the smaller verifier schema, Experiment 6) |
 | Grounding (full-file context) over the deployed model | No noise reduction: 26 → 28 findings, 3 → 5 critical findings; the flagship 0.98 false positive recurred in 4/4 grounded runs |
 | Cross-file recall, 5 planted fixtures, full dependency in context | Grounding helped on 3 of 5 (hand-verified recall 1/15 → 8/15); the other 2 were missed even with the dependency in context |
 | Cross-vendor verification over mini's 26 findings | Gemini 3.1 Pro killed 25/26, Opus 4.8 killed 23/26, both agreeing with the same-vendor panel on 23 to 25 of 26 |
+| Multi-agent review (planner, reviewer, critic) on gpt-5.5 | 9 findings vs 6 for single-pass, recall 8/8 preserved; more thorough, not more precise |
+| Per-finding precision audit, all 83 findings | 1 clear true positive, roughly 80 false positives; every finding at confidence 0.95+ was wrong |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -55,7 +57,7 @@ Each model received the same 22 PRs through the bot's exact review path. The pro
 | google/gemini-3.1-pro-preview | 9 | 20 / 22 |
 | anthropic/claude-opus-4.8 | 0 | 0 / 22 |
 
-The `google/gemini-3.1-pro-preview` model failed on 2 of 22 PRs with truncated or incomplete output, one of which hit the output-length limit. The `anthropic/claude-opus-4.8` model returned the same provider-routing 404 on all 22 PRs and produced no results. The bot's request for a strict `json_schema` response format is the most likely trigger of the failure, though the 404 is a generic routing error that was not isolated to one parameter. The noise comparison is therefore based on the three gpt-5.x models, which all ran on the full set without errors.
+The `google/gemini-3.1-pro-preview` model failed on 2 of 22 PRs with truncated or incomplete output, one of which hit the output-length limit. The `anthropic/claude-opus-4.8` model returned the same provider-routing 404 on all 22 PRs and produced no results. Experiment 6 isolates the cause. The same model completed all 26 calls with the smaller verifier `json_schema`, while the larger review-output schema failed on every attempt, so the strict review-output schema is the obstacle rather than the model being unavailable. The noise comparison is therefore based on the three gpt-5.x models, which all ran on the full set without errors.
 
 Mini's 26 findings included three critical findings at confidence 0.96–0.98, all false positives. One (0.98, axios PR) claimed a config-merge helper passed a boolean presence check rather than the actual value to a URL builder, breaking query-string serialization. Reading the code confirmed the helper returns the value. A second (0.96, Spring PR) flagged a nested-property dereference as a null-pointer risk, but the Spring property holder is always initialized, so the removed null check was redundant. The third (0.98, React PR) correctly saw that two exports were dropped from an internal, experimental React package, but over-weighted that expected churn as a critical breaking change.
 
@@ -164,7 +166,45 @@ All three independent verifiers, spanning three vendors, removed the bulk of min
 
 The verifiers were not identical on the hard cases. Opus judged the axios `resolveConfig.js:59` false positive (confidence 0.98) as real, the one finding Experiment 4 showed requires code outside the diff to refute. A verifier that reads only the diff can be fooled by it, which is consistent with the cross-file result that the bottleneck is the use of context, not the verifier's vendor. Under the gate's unanimous-false-positive rule a multi-vendor panel keeps this finding, since one real vote blocks the drop, which is the conservative fail-open behavior the gate already uses.
 
-Cost was negligible. The Gemini run cost $0.36 and the Opus run cost $0.38 over the 26 findings, at OpenRouter prices verified on 2026-06-02 (Gemini 3.1 Pro at $2 and $12 per million input and output tokens, Opus 4.8 at $5 and $25). Opus returned a provider-routing 404 as a generator in Experiment 1 but completed all 26 calls as a verifier here, and the cause was not isolated to one request shape.
+Cost was negligible. The Gemini run cost $0.36 and the Opus run cost $0.38 over the 26 findings, at OpenRouter prices verified on 2026-06-02 (Gemini 3.1 Pro at $2 and $12 per million input and output tokens, Opus 4.8 at $5 and $25). Opus failed to generate a full review in Experiment 1 (0 of 22, a provider error) but completed all 26 calls as a verifier here. Since the only difference is the smaller verdict schema, the strict review-output `json_schema` is the obstacle, not the model being unavailable.
+
+---
+
+## Experiment 7: Does multi-agent collaboration beat a single pass?
+
+The bot reviews a PR in one model call. A natural v0.3 question is whether a multi-agent collaboration on the same strong base model does better. This experiment runs a three-stage pipeline on gpt-5.5 over the same 22 PRs. A planner emits a focused review plan, a reviewer produces candidate findings from the diff and the plan, and a critic returns the final findings, dropping what the diff does not confirm. The final findings pass the same diff-anchor gate. The baseline is single-pass gpt-5.5 from Experiment 1.
+
+| Pipeline | Findings on the 22 PRs | Real findings (hand-scored) | Planted-bug recall |
+|---|---|---|---|
+| Single-pass gpt-5.5 (Experiment 1) | 6 | 0 clear, 1 borderline | 8 / 8 |
+| Multi-agent gpt-5.5 (planner, reviewer, critic) | 9 | 1 clear, 1 borderline | 8 / 8 |
+
+The reviewer produced 18 candidate findings and the critic pruned them to 9. The collaboration increased finding volume rather than reducing it. Recall was preserved, since the critic kept all eight planted bugs. On the per-finding hand review (Experiment 8), the multi-agent pipeline surfaced exactly one clear real bug, the same React control-flow defect the deployed model also found, and its other findings were false positives.
+
+So multi-agent collaboration found the same single real bug the cheap model did and added false positives, not real ones. On merged, accepted code, where the precision-optimal output is few findings, posting 50 percent more than the single pass is the wrong direction. This is the opposite of the verification gate (Experiments 3 and 6), which reduces volume. For a bottleneck that is precision, not recall, the gate is the better-targeted intervention, which is why the bot ships the gate and not this pipeline. The run cost $3.78 at OpenRouter prices, $3.42 for the precision arm and $0.36 for the recall arm.
+
+---
+
+## Experiment 8: Per-finding precision across every configuration
+
+Experiments 1 to 7 counted findings and scored a sample (the three confident criticals, the planted bugs, the verifier panel). This experiment hand-scores every finding the six configurations posted on the 22 merged PRs, against the actual code, to measure precision directly rather than infer it from the verification gate. The per-finding verdicts and the method are in [`eval/finding-scores.md`](../eval/finding-scores.md).
+
+83 findings were scored: the noise panel (mini 26, gpt-5.5 6, gpt-5.3-codex 5, gemini 9, opus 0), the grounding re-review (28), and the multi-agent pipeline (9).
+
+| Configuration | Findings | Clear true positive | Borderline | False positive |
+|---|---|---|---|---|
+| gpt-5.4-mini (deployed) | 26 | 1 | 1 | 24 |
+| gpt-5.5 | 6 | 0 | 1 | 5 |
+| gpt-5.3-codex | 5 | 0 | 0 | 5 |
+| gemini-3.1-pro-preview | 9 | 1 | 0 | 8 |
+| grounded-mini | 28 | 0 | 0 | 28 |
+| multi-agent gpt-5.5 | 9 | 1 | 1 | 7 |
+
+Across all 83 findings there was exactly one clear true positive, a control-flow bug in React PR 36566 that masks a decode error, surfaced independently by gpt-5.4-mini, gemini-3.1-pro, and the multi-agent pipeline. Two further findings are borderline (an axios redirect-credential hardening gap and a FastAPI latent asset-staging gap). Every other finding, roughly 80 of 83, was a false positive.
+
+Every finding at confidence 0.95 or above was a false positive, including one at 1.00 (gemini) and mini's confident criticals at 0.96 to 0.98. The one clear true positive carried confidences of 0.73 to 0.90. High model confidence did not track correctness on this set.
+
+This is the strongest form of the central result. Recall was never the problem. Every configuration caught the planted bugs. Precision was the problem, and it stayed low even for the frontier models, even with full-file grounding, and even with a multi-agent pipeline. A verification gate that removes unconfirmed findings is the intervention that targets this directly. Some verdicts rest on source outside the frozen diff (a helper, a build file, a pinned library version), resolved against the real merged code the same way Experiment 4 was, and the two borderline calls are flagged rather than rounded.
 
 ---
 
@@ -182,7 +222,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 
 - **Recall scope.** Recall was measured on planted, diff-evident bugs. A finding was counted as a catch if it was anchored to a valid diff line within the planted fixture's file. The pipeline did not verify that the finding described the planted bug or require any particular severity. Recall on subtle, cross-file, or semantic bugs is untested and would require a labeled dataset of known real regressions.
 - **Sample size and selection.** The noise measurement covers 22 merged PRs drawn as the most recent qualifying PRs from four high-profile, heavily reviewed repositories, a selection that likely understates false positive rates on lower-quality or internal code. At 22 PRs this is a method demonstration, not a precise rate.
-- **Scoring scope.** The stronger models' findings were counted, not individually scored for precision.
+- **Scoring scope.** Experiment 8 hand-scores every finding for precision. Those labels are the author's judgments against the code, not a model's, and several rest on source outside the frozen diff fetched from the merged projects. The two borderline findings are flagged rather than rounded.
 - **Same-vendor coverage.** Experiment 1's clean noise comparison covers same-vendor generators only. Experiment 6 addresses the verifier side by re-running the gate with cross-vendor verifiers (Gemini 3.1 Pro and Opus 4.8), which reached the same verdicts on 23 to 25 of 26 findings. Cross-vendor coverage of the base-model noise comparison itself remains future work, since Opus returned provider-routing 404s as a generator in the noise panel.
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
 - **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of critical-severity findings rather than a verified false-positive rate.
@@ -220,6 +260,12 @@ npx tsx eval/crossfile-recall-eval.ts
 # Cross-vendor verification: re-run the gate with a non-OpenAI verifier
 npx tsx eval/crossvendor-verify.ts                                        # Gemini (default)
 CV_VERIFIERS=anthropic/claude-opus-4.8 npx tsx eval/crossvendor-verify.ts  # Opus
+
+# Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
+npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs
+MA_MODE=recall npx tsx eval/multiagent-review.ts   # recall arm over the planted bugs
 ```
+
+Per-finding precision verdicts (Experiment 8) are recorded in [`eval/finding-scores.md`](./finding-scores.md).
 
 Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, `eval/eval-recall-results.jsonl`, `eval/eval-results-grounded-mini.jsonl`, and `eval/eval-verify-crossvendor-<verifier>.jsonl`. Recall preservation, the grounding robustness check, and the cross-file recall experiment print to stdout.

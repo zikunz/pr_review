@@ -14,6 +14,6 @@ useDefault = true
 description = "Intentional fake secrets in test and evaluation fixtures"
 paths = [
   '''tests/lib/trace\.test\.ts''',
-  '''eval/eval-recall\.ts''',
+  '''eval/recall-fixtures\.ts''',
   '''eval/eval-recall-results\.jsonl''',
 ]

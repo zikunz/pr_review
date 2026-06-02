@@ -14,6 +14,7 @@ import { zodResponseFormat } from 'openai/helpers/zod';
 import { isValidCommentLocation, parseDiffLocations } from '@/github/diff';
 import { buildUserPrompt, SYSTEM_PROMPT } from '@/openai/prompt';
 import { ReviewOutput } from '@/openai/schema';
+import { RECALL_FIXTURES as FIXTURES } from './recall-fixtures';
 
 for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').split('\n')) {
   const t = line.trim();
@@ -29,108 +30,6 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
 }
 
 const MODELS = ['openai/gpt-5.4-mini', 'openai/gpt-5.5', 'openai/gpt-5.3-codex'];
-
-const FIXTURES: Array<{ id: string; title: string; file: string; bug: string; patch: string }> = [
-  {
-    id: 'sql-injection',
-    title: 'Add order lookup endpoint',
-    file: 'src/orders.ts',
-    bug: 'SQL injection: req.query.orderId interpolated straight into the query',
-    patch: `@@ -0,0 +1,4 @@
-+export async function findOrder(req, db) {
-+  const orderId = req.query.orderId;
-+  return db.query(\`SELECT * FROM orders WHERE id = \${orderId}\`);
-+}`,
-  },
-  {
-    id: 'command-injection',
-    title: 'Add image conversion helper',
-    file: 'src/convert.ts',
-    bug: 'Command injection: req.query.path passed unescaped into exec',
-    patch: `@@ -0,0 +1,5 @@
-+import { exec } from 'node:child_process';
-+
-+export function convertImage(req) {
-+  exec('convert ' + req.query.path + ' /tmp/out.png');
-+}`,
-  },
-  {
-    id: 'path-traversal',
-    title: 'Serve uploaded avatar',
-    file: 'src/avatar.ts',
-    bug: 'Path traversal: req.query.file (e.g. ../../etc/passwd) read with no sanitization',
-    patch: `@@ -0,0 +1,5 @@
-+import { readFileSync } from 'node:fs';
-+
-+export function getAvatar(req) {
-+  return readFileSync('./uploads/' + req.query.file);
-+}`,
-  },
-  {
-    id: 'off-by-one',
-    title: 'Sum cart totals',
-    file: 'src/cart.ts',
-    bug: 'Off-by-one: loop uses <= length, reads items[length] (out of bounds / undefined)',
-    patch: `@@ -0,0 +1,6 @@
-+export function total(items) {
-+  let sum = 0;
-+  for (let i = 0; i <= items.length; i++) {
-+    sum += items[i].price;
-+  }
-+  return sum;
-+}`,
-  },
-  {
-    id: 'assignment-in-condition',
-    title: 'Gate admin panel',
-    file: 'src/auth.ts',
-    bug: "Assignment in condition: if (user.role = 'admin') assigns, always truthy -> auth bypass",
-    patch: `@@ -0,0 +1,5 @@
-+export function canAccessAdmin(user) {
-+  if (user.role = 'admin') {
-+    return true;
-+  }
-+  return false;
-+}`,
-  },
-  {
-    id: 'hardcoded-secret',
-    title: 'Wire up Stripe client',
-    file: 'src/billing.ts',
-    bug: 'Hardcoded live secret key committed in source',
-    patch: `@@ -0,0 +1,4 @@
-+import Stripe from 'stripe';
-+
-+const STRIPE_SECRET = 'sk_live_51HxQ2eK8mNpReal0LookingSecretValue';
-+export const stripe = new Stripe(STRIPE_SECRET);`,
-  },
-  {
-    id: 'weak-random-token',
-    title: 'Generate password reset token',
-    file: 'src/reset.ts',
-    bug: 'Insecure randomness: Math.random() used to mint a security-sensitive reset token',
-    patch: `@@ -0,0 +1,4 @@
-+export function makeResetToken() {
-+  // token emailed to the user to reset their password
-+  return Math.random().toString(36).slice(2);
-+}`,
-  },
-  {
-    id: 'empty-catch-swallow',
-    title: 'Charge customer on checkout',
-    file: 'src/checkout.ts',
-    bug: 'Empty catch swallows the payment error; checkout reports success even when the charge failed',
-    patch: `@@ -0,0 +1,9 @@
-+export async function checkout(cart, gateway) {
-+  let ok = true;
-+  try {
-+    await gateway.charge(cart.total, cart.card);
-+  } catch (e) {
-+  }
-+  return { success: ok };
-+}`,
-  },
-];
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
