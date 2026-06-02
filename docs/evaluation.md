@@ -85,7 +85,7 @@ Eight small diffs, each containing one planted, diff-evident bug. All three mode
 
 ## Experiment 3: Verification layer
 
-A refutation-first verifier panel (gpt-5.5 and gpt-5.3-codex) was run over mini's findings. Each verifier received the finding text and the relevant diff. The instruction defaults to `false_positive` unless the diff itself confirms the issue.
+A refutation-first verifier panel (gpt-5.5 and gpt-5.3-codex) was run over mini's findings. Each verifier received the finding text and the relevant diff. The instruction defaults to `false_positive` unless the diff itself confirms the issue. This experiment used a two-model panel to exercise the consensus rule. The shipped gate defaults to a single verifier (`VERIFY_MODELS=gpt-5.5`), a strict subset of the panel measured here.
 
 **Mini's panel findings (26)**
 

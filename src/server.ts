@@ -12,7 +12,7 @@ const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' }, 
 
 let shuttingDown = false;
 
-async function shutdown(signal: string): Promise<void> {
+async function shutdown(signal: string, exitCode = 0): Promise<void> {
   if (shuttingDown) {
     console.error(`received ${signal} during shutdown, forcing exit`);
     process.exit(1);
@@ -42,7 +42,7 @@ async function shutdown(signal: string): Promise<void> {
     // be awaited and `process.exit(0)` would kill it mid-OpenAI-call.
     await httpClosed;
     await drainInFlightReviews();
-    process.exit(0);
+    process.exit(exitCode);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     console.error('graceful shutdown failed', reason);
@@ -59,6 +59,7 @@ process.on('SIGINT', () => {
 // Node 24 treats both as fatal by default. Route through `trace` so the
 // redactor scrubs any secret-shaped substring an upstream library may have
 // embedded in the error message or stack before it lands on stdout or disk.
+// Exit with a non-zero code so the platform records a crash, not a clean stop.
 process.on('uncaughtException', (err) => {
   trace({
     event: 'process.uncaught_exception',
@@ -66,7 +67,7 @@ process.on('uncaughtException', (err) => {
     error: err instanceof Error ? err.message : String(err),
     details: { stack: err instanceof Error ? err.stack : undefined },
   });
-  void shutdown('uncaughtException');
+  void shutdown('uncaughtException', 1);
 });
 process.on('unhandledRejection', (reason) => {
   trace({
@@ -75,5 +76,5 @@ process.on('unhandledRejection', (reason) => {
     error: reason instanceof Error ? reason.message : String(reason),
     details: { stack: reason instanceof Error ? reason.stack : undefined },
   });
-  void shutdown('unhandledRejection');
+  void shutdown('unhandledRejection', 1);
 });

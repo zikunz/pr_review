@@ -146,7 +146,7 @@ New capabilities.
 7. **Per PR override** via PR label (`cascade:lenient`, `cascade:strict`) or description hint.
 8. Eval metrics dashboard for review of aggregate accuracy and cost trends across repos. Surface is internal first, public later when the data justifies it.
 
-Target outcome. The v0.1 production traces establish the baseline false-positive rate. v0.3 verification aims to cut it by at least half. Precise numbers go in the v0.3 ship blog after measurement, not in this roadmap.
+Target outcome. The offline evaluation (docs/evaluation.md) establishes the baseline false-positive rate. v0.3 verification aims to cut it by at least half. Precise numbers go in the v0.3 ship blog after measurement, not in this roadmap.
 
 ### v0.4 and beyond
 
