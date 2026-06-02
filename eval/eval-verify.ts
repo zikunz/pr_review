@@ -23,7 +23,10 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   const i = t.indexOf('=');
   if (i < 0) continue;
   const k = t.slice(0, i).trim();
-  const v = t.slice(i + 1).trim().replace(/^['"]|['"]$/g, '');
+  const v = t
+    .slice(i + 1)
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
   if (!(k in process.env)) process.env[k] = v;
 }
 
@@ -46,7 +49,12 @@ const client = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL,
   timeout: 60_000,
   ...(process.env.OPENAI_BASE_URL?.includes('openrouter.ai')
-    ? { defaultHeaders: { 'HTTP-Referer': 'https://github.com/zikunz/pr_review', 'X-Title': 'PR Cascade' } }
+    ? {
+        defaultHeaders: {
+          'HTTP-Referer': 'https://github.com/zikunz/pr_review',
+          'X-Title': 'PR Cascade',
+        },
+      }
     : {}),
 });
 
@@ -107,9 +115,14 @@ ${patch.slice(0, 30000)}`;
       max_completion_tokens: 16000,
     });
     const p = c.choices[0]?.message?.parsed;
-    return p ? { verdict: p.verdict, reason: p.reason } : { verdict: 'error', reason: 'no parsed verdict' };
+    return p
+      ? { verdict: p.verdict, reason: p.reason }
+      : { verdict: 'error', reason: 'no parsed verdict' };
   } catch (e) {
-    return { verdict: 'error', reason: `${(e as Error).name}: ${(e as Error).message?.slice(0, 120)}` };
+    return {
+      verdict: 'error',
+      reason: `${(e as Error).name}: ${(e as Error).message?.slice(0, 120)}`,
+    };
   }
 }
 
@@ -138,7 +151,9 @@ async function main() {
   const bothReal = results.filter((r) => r.bothReal).length;
   const split = results.length - bothFP - bothReal;
   console.log(`\n=== SUMMARY (verification layer over mini's ${results.length} findings) ===`);
-  console.log(`KILLED by consensus (both verifiers say false_positive): ${bothFP}/${results.length}`);
+  console.log(
+    `KILLED by consensus (both verifiers say false_positive): ${bothFP}/${results.length}`,
+  );
   console.log(`survived (both say real): ${bothReal}/${results.length}`);
   console.log(`split (1 real / 1 FP): ${split}/${results.length}`);
   for (const m of VERIFIERS) {
@@ -147,8 +162,12 @@ async function main() {
     console.log(`  ${m}: called false_positive on ${fp}/${results.length}  (errors: ${err})`);
   }
   console.log(`\nThe 3 confident FPs mini made:`);
-  for (const r of results.filter((x) => [10922, 50504, 36553].includes(x.pr) && x.confidence >= 0.9)) {
-    console.log(`  #${r.pr} ${r.file} (conf ${r.confidence}): ${VERIFIERS.map((m) => `${m.split('/')[1]}=${r.verdicts[m].verdict}`).join('  ')}`);
+  for (const r of results.filter(
+    (x) => [10922, 50504, 36553].includes(x.pr) && x.confidence >= 0.9,
+  )) {
+    console.log(
+      `  #${r.pr} ${r.file} (conf ${r.confidence}): ${VERIFIERS.map((m) => `${m.split('/')[1]}=${r.verdicts[m].verdict}`).join('  ')}`,
+    );
   }
   console.log(`\n-> ${OUT}`);
 }

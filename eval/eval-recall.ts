@@ -21,7 +21,10 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   const i = t.indexOf('=');
   if (i < 0) continue;
   const k = t.slice(0, i).trim();
-  const v = t.slice(i + 1).trim().replace(/^['"]|['"]$/g, '');
+  const v = t
+    .slice(i + 1)
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
   if (!(k in process.env)) process.env[k] = v;
 }
 
@@ -134,7 +137,12 @@ const client = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL,
   timeout: 60_000,
   ...(process.env.OPENAI_BASE_URL?.includes('openrouter.ai')
-    ? { defaultHeaders: { 'HTTP-Referer': 'https://github.com/zikunz/pr_review', 'X-Title': 'PR Cascade' } }
+    ? {
+        defaultHeaders: {
+          'HTTP-Referer': 'https://github.com/zikunz/pr_review',
+          'X-Title': 'PR Cascade',
+        },
+      }
     : {}),
 });
 
@@ -153,7 +161,9 @@ async function review(model: string, fx: (typeof FIXTURES)[number]) {
     });
     const r = c.choices[0]?.message?.parsed;
     if (!r) return { error: 'no parsed review' };
-    const posted = (r.findings || []).filter((f) => isValidCommentLocation(locations, f.file, f.line));
+    const posted = (r.findings || []).filter((f) =>
+      isValidCommentLocation(locations, f.file, f.line),
+    );
     return { posted };
   } catch (e) {
     return { error: `${(e as Error).name}: ${(e as Error).message?.slice(0, 110)}` };
@@ -172,7 +182,8 @@ async function main() {
         console.log(`  ${m.split('/')[1]}: ERROR ${r.error}`);
       } else {
         console.log(`  ${m.split('/')[1]}: ${r.posted.length} finding(s)`);
-        for (const f of r.posted) console.log(`     [${f.severity}|${f.category}] ${f.message.slice(0, 110)}`);
+        for (const f of r.posted)
+          console.log(`     [${f.severity}|${f.category}] ${f.message.slice(0, 110)}`);
       }
     }
     results.push({ ...fx, byModel });
@@ -182,7 +193,9 @@ async function main() {
     `${results.map((r) => JSON.stringify(r)).join('\n')}\n`,
     'utf8',
   );
-  console.log(`\n-> eval/eval-recall-results.jsonl  (judge caught/missed by hand against each planted bug)`);
+  console.log(
+    `\n-> eval/eval-recall-results.jsonl  (judge caught/missed by hand against each planted bug)`,
+  );
 }
 
 main().catch((e) => {

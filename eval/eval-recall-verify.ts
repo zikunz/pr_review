@@ -18,7 +18,10 @@ for (const line of readFileSync(resolve(process.cwd(), '.env.local'), 'utf8').sp
   const i = t.indexOf('=');
   if (i < 0) continue;
   const k = t.slice(0, i).trim();
-  const v = t.slice(i + 1).trim().replace(/^['"]|['"]$/g, '');
+  const v = t
+    .slice(i + 1)
+    .trim()
+    .replace(/^['"]|['"]$/g, '');
   if (!(k in process.env)) process.env[k] = v;
 }
 
@@ -33,11 +36,21 @@ const client = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL,
   timeout: 60_000,
   ...(process.env.OPENAI_BASE_URL?.includes('openrouter.ai')
-    ? { defaultHeaders: { 'HTTP-Referer': 'https://github.com/zikunz/pr_review', 'X-Title': 'PR Cascade' } }
+    ? {
+        defaultHeaders: {
+          'HTTP-Referer': 'https://github.com/zikunz/pr_review',
+          'X-Title': 'PR Cascade',
+        },
+      }
     : {}),
 });
 
-async function verify(model: string, finding: { severity: string; category: string; file: string; line: number; message: string }, title: string, patch: string) {
+async function verify(
+  model: string,
+  finding: { severity: string; category: string; file: string; line: number; message: string },
+  title: string,
+  patch: string,
+) {
   const user = `PR: ${title}
 Finding to audit: [${finding.severity} | ${finding.category}] on ${finding.file}:${finding.line}
 "${finding.message}"
@@ -77,20 +90,31 @@ async function main() {
       continue;
     }
     // the planted-bug catch = the critical finding (fall back to first)
-    const catchFinding = (mini.posted as Array<{ severity: string }>).find((f) => f.severity === 'critical') ?? mini.posted[0];
+    const catchFinding =
+      (mini.posted as Array<{ severity: string }>).find((f) => f.severity === 'critical') ??
+      mini.posted[0];
     total++;
     const verdicts: Record<string, { verdict: string; reason: string }> = {};
     for (const m of VERIFIERS) verdicts[m] = await verify(m, catchFinding, fx.title, fx.patch);
     const survives = VERIFIERS.every((m) => verdicts[m].verdict === 'real');
     if (survives) kept++;
     console.log(`\n### ${fx.id} (planted: ${fx.bug.slice(0, 60)})`);
-    console.log(`  catch: [${catchFinding.severity}|${catchFinding.category}] ${catchFinding.message.slice(0, 80)}`);
-    for (const m of VERIFIERS) console.log(`  ${m.split('/')[1]} = ${verdicts[m].verdict}: ${verdicts[m].reason.slice(0, 120)}`);
+    console.log(
+      `  catch: [${catchFinding.severity}|${catchFinding.category}] ${catchFinding.message.slice(0, 80)}`,
+    );
+    for (const m of VERIFIERS)
+      console.log(
+        `  ${m.split('/')[1]} = ${verdicts[m].verdict}: ${verdicts[m].reason.slice(0, 120)}`,
+      );
     console.log(`  -> ${survives ? 'KEPT (recall preserved)' : 'KILLED (recall HURT!)'}`);
   }
   console.log(`\n=== SUMMARY ===`);
   console.log(`Planted-bug catches kept by the verifier: ${kept}/${total}`);
-  console.log(kept === total ? 'Verification preserved 100% recall on the planted bugs.' : `WARNING: verification killed ${total - kept} real-bug finding(s).`);
+  console.log(
+    kept === total
+      ? 'Verification preserved 100% recall on the planted bugs.'
+      : `WARNING: verification killed ${total - kept} real-bug finding(s).`,
+  );
 }
 
 main().catch((e) => {

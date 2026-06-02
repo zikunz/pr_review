@@ -102,10 +102,16 @@ function select(): void {
       );
       const productCode = codeFiles.filter((f) => !TEST_PATH.test(f.filename));
       const totalPatch = codeFiles.reduce((n, f) => n + f.patch.length, 0);
-      if (productCode.length === 0 || totalPatch < MIN_PATCH_CHARS || totalPatch > MAX_PATCH_CHARS) {
+      if (
+        productCode.length === 0 ||
+        totalPatch < MIN_PATCH_CHARS ||
+        totalPatch > MAX_PATCH_CHARS
+      ) {
         continue;
       }
-      const locations = parseDiffLocations(codeFiles.map((f) => ({ path: f.filename, patch: f.patch })));
+      const locations = parseDiffLocations(
+        codeFiles.map((f) => ({ path: f.filename, patch: f.patch })),
+      );
       if (locations.length === 0) continue;
 
       selected.push({
@@ -116,7 +122,9 @@ function select(): void {
         body: pull.body,
         files: codeFiles.map((f) => ({ filename: f.filename, patch: f.patch })),
       });
-      console.log(`  PR #${pull.number}  ${codeFiles.length} files  ${totalPatch} chars  — ${pull.title.slice(0, 60)}`);
+      console.log(
+        `  PR #${pull.number}  ${codeFiles.length} files  ${totalPatch} chars  — ${pull.title.slice(0, 60)}`,
+      );
       kept++;
     }
     console.log(`  kept ${kept}`);
@@ -136,12 +144,24 @@ async function runModel(model: string): Promise<void> {
 
   const results = [];
   for (const pr of prs) {
-    const promptFiles: PromptFile[] = pr.files.map((f) => ({ filename: f.filename, patch: f.patch }));
-    const locations = parseDiffLocations(pr.files.map((f) => ({ path: f.filename, patch: f.patch })));
+    const promptFiles: PromptFile[] = pr.files.map((f) => ({
+      filename: f.filename,
+      patch: f.patch,
+    }));
+    const locations = parseDiffLocations(
+      pr.files.map((f) => ({ path: f.filename, patch: f.patch })),
+    );
     process.stdout.write(`  ${pr.repo} #${pr.pr} ... `);
     try {
-      const { review } = await callReview({ prTitle: pr.title, prBody: pr.body, files: promptFiles, model });
-      const posted = review.findings.filter((f) => isValidCommentLocation(locations, f.file, f.line));
+      const { review } = await callReview({
+        prTitle: pr.title,
+        prBody: pr.body,
+        files: promptFiles,
+        model,
+      });
+      const posted = review.findings.filter((f) =>
+        isValidCommentLocation(locations, f.file, f.line),
+      );
       results.push({
         repo: pr.repo,
         pr: pr.pr,
@@ -165,7 +185,17 @@ async function runModel(model: string): Promise<void> {
     } catch (e) {
       const msg = `${(e as Error).name}: ${(e as Error).message?.slice(0, 160)}`;
       console.log(`error: ${msg}`);
-      results.push({ repo: pr.repo, pr: pr.pr, url: pr.url, title: pr.title, model, rawFindings: 0, posted: [], dropped: 0, error: msg });
+      results.push({
+        repo: pr.repo,
+        pr: pr.pr,
+        url: pr.url,
+        title: pr.title,
+        model,
+        rawFindings: 0,
+        posted: [],
+        dropped: 0,
+        error: msg,
+      });
     }
   }
 

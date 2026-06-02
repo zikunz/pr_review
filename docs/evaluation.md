@@ -10,6 +10,7 @@
 | Verification layer over mini's 26 findings | 24 removed, 2 kept, 0 split (92% of mini's findings) |
 | Recall preservation through verifier | 8/8 real bugs kept |
 | Cross-vendor compatibility (2 models) | `gemini-3.1-pro-preview`: 9 findings, 20/22 PRs completed (2 incomplete-output errors); `claude-opus-4.8`: 0/22 PRs completed (provider-routing 404 on all 22) |
+| Grounding (full-file context) over the deployed model | No noise reduction: 26 → 28 findings, 3 → 5 confident criticals; the flagship 0.98 false positive recurred in 4/4 grounded runs |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -106,11 +107,31 @@ The verifier removed 24 of mini's 26 findings (92%) and kept all 8 planted-bug c
 
 ---
 
+## Experiment 4: Does grounding replace the verification gate?
+
+The three confident false positives in Experiment 1 all came from diff-only reasoning. The disambiguating code lived outside the diff: the axios `own` helper's definition, the Spring property's field initializer, and the React package's `private` status. The frontier best practice for this, used by tools like Greptile and CodeRabbit and described as "grounding" in recent work, is to review with the surrounding code rather than the diff alone. This experiment tests whether grounding the deployed model in the full file removes those false positives, which would make a verification gate unnecessary.
+
+The 22 PRs were re-reviewed by gpt-5.4-mini with the full current content of each changed file (fetched at the PR head, capped per file) appended to the otherwise-identical prompt. The system prompt, output schema, and diff-anchor gate were unchanged, so the only variable is the added context. As a robustness check against sampling noise, the flagship axios PR was re-run four times under grounding.
+
+| Metric | Diff-only (baseline) | Full-file (grounded) |
+|---|---|---|
+| Total findings | 26 | 28 |
+| Confident criticals | 3 | 5 |
+| axios `resolveConfig.js:59` false positive | present (0.98) | present in 4/4 runs (0.98, 0.79, 0.99, 0.99) |
+
+Grounding did not reduce the model's output. The flagship axios false positive recurred in all four grounded runs at high confidence, even though the `own` helper's definition was confirmed present in the supplied file; each run produced a confident and still-incorrect reading of the same line. The Spring and React baseline criticals did not recur in the single grounded run, but new confident criticals appeared on other PRs, and each condition is a single full run, so the disappearance is within run-to-run variance rather than a clean attribution to grounding.
+
+Full-file context, a superset of what retrieval-based tools surface, was necessary but not sufficient. It did not fix the most confident hallucination and did not lower the confident-critical count. Grounding does not obviate the verification gate; the two are complementary, and the gate in Experiment 3 is the component measured to remove the false positives. The bottleneck for these errors is the model's reasoning and confidence calibration on the diff, not the availability of context.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
 
 A refutation-first verification gate addresses this asymmetry. It removes findings the diff does not support and keeps findings the diff confirms. Run over mini's output, it removed 24 of the 26 findings while preserving every planted-bug catch, at the cost of two verifier calls per finding that reaches the gate.
+
+Adding full-file context did not substitute for the gate. The most confident false positive survived grounding in 4 of 4 runs and the confident-critical count did not fall, so context-grounding and verification are complementary rather than alternatives. The bottleneck is the model's calibration on the diff, which the gate targets directly.
 
 ---
 
@@ -121,6 +142,7 @@ A refutation-first verification gate addresses this asymmetry. It removes findin
 - **Scoring scope.** The stronger models' findings were counted, not individually scored for precision.
 - **Same-vendor coverage.** The clean noise comparison and the verifier cover same-vendor models only. Same-vendor verifiers may share systematic failure modes with the base model, which could inflate apparent precision. Cross-vendor coverage remains future work, since the two cross-vendor models did not complete the panel cleanly in this run.
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
+- **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new confident criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of confident findings rather than a verified false-positive rate.
 
 ---
 
@@ -141,6 +163,12 @@ npx tsx eval/eval-recall.ts
 
 # Run recall preservation
 npx tsx eval/eval-recall-verify.ts
+
+# Grounding experiment: re-review the 22 PRs with full-file context
+npx tsx eval/grounding-eval.ts
+
+# Robustness check: re-run the flagship false positive under grounding four times
+npx tsx eval/grounding-axios-repeat.ts
 ```
 
-Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, and `eval/eval-recall-results.jsonl`. Recall preservation output is printed to stdout.
+Results are written to `eval/eval-results-<model>.jsonl`, `eval/eval-verify-results.jsonl`, `eval/eval-recall-results.jsonl`, and `eval/eval-results-grounded-mini.jsonl`. Recall preservation and the grounding robustness check print to stdout.
