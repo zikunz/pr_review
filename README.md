@@ -1,6 +1,6 @@
 # PR Cascade
 
-> A GitHub Pull Request review agent that posts inline comments. Every LLM finding is checked against the actual diff before posting, so reviewers never see a comment about a line the PR did not touch. A three-tier cost-aware model cascade ships in v0.2.
+> A GitHub Pull Request review agent that posts inline comments. Every LLM finding is checked against the actual diff before posting, so reviewers never see a comment about a line the PR did not touch. A diff-driven three-tier model cascade and a refutation-first verification gate ship behind environment flags.
 
 [![CI](https://github.com/zikunz/pr_review/actions/workflows/ci.yml/badge.svg)](https://github.com/zikunz/pr_review/actions/workflows/ci.yml)
 [![Node 24](https://img.shields.io/badge/node-24%20LTS-brightgreen)](./.nvmrc)
@@ -12,7 +12,9 @@
 
 PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
 
-Detailed product spec lives in [ROADMAP.md](./ROADMAP.md).
+Detailed product spec lives in [ROADMAP.md](./ROADMAP.md). An offline evaluation of review quality is in [docs/evaluation.md](./docs/evaluation.md).
+
+The headline finding from that evaluation: across 22 real merged pull requests, the cheap deployed model is noisy (26 findings, nearly all false positives) while stronger models stay quiet on the same code, yet every model catches 100% of planted, diff-evident bugs. So for code review the differentiator is precision, not recall. A refutation-first verification gate built on that insight removes 24 of those 26 noisy findings while preserving every planted-bug catch.
 
 ## Architecture (v0.1)
 
@@ -89,13 +91,23 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 | JSON Lines trace logging with secret-shaped substring redaction | Shipped (v0.1) |
 | `@<bot-name>` re-trigger from owners, members, and collaborators | Shipped (v0.1) |
 | Graceful shutdown drains in-flight reviews on SIGTERM, SIGINT, and fatal process errors up to a 10-second ceiling | Shipped (v0.1) |
-| Three-tier cascade routing | Planned (v0.2) |
+| Diff-driven three-tier cascade routing (`CASCADE_ENABLED`) | Built, off by default |
 | Agentic tool use (context fetch, library docs, CI logs) | Planned (v0.2) |
 | Persona system with `.cascade.yml` | Planned (v0.2) |
 | Model-based refutation-first verification gate (`VERIFY_ENABLED`) | Built, off by default |
 | Tool-based verification with calibrated confidence | Planned (v0.3) |
 | LoRA distillation pipeline | Future (v0.4+) |
 | Cloudflare Workers migration | Future (v0.4+) |
+
+## Evaluation
+
+[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs three experiments over a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
+
+1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong; gpt-5.5 and gpt-5.3-codex posted 5 and 6 on the same code.
+2. **Recall test.** Eight diffs with one planted, diff-evident bug each. All three OpenAI models caught 8/8.
+3. **Verification layer.** A refutation-first second model audits each finding against the diff. Over mini's 26 findings it removed 24 (including all three confident criticals) and kept the 2 plausibly-real ones, and over the eight planted bugs it kept 8/8.
+
+The harness and frozen data are in [`eval/`](./eval) and the run is reproducible with the commands in the evaluation document. Every number is checked against the raw result files; the writeup also lists the methodology's limitations (small sample, planted-bug recall only, same-vendor verifier, single coder).
 
 ## Limitations
 
@@ -108,7 +120,16 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 - The Markdown escape chain on posted findings defangs `& < > [ ]` but not `@`-mentions, `#`-issue references, or bare URLs. A PR title or body containing text the model echoes verbatim into a finding can produce unintended pings or autolinked URLs in the bot's posted comments. Extending the escape chain is a v0.2 candidate.
 - Draft pull requests are reviewed the same as ready pull requests, and the `ready_for_review` action is not in the allowlist. A developer iterating on a draft burns a full review per `synchronize` push, and the natural "draft is now ready" signal does not fire a fresh review on the ready-state diff. Skipping `pr.draft === true` and adding `ready_for_review` to the trigger set are a v0.2 candidate.
 - PRs with more than `MAX_PR_FILE_PAGES * 100 = 3,000` changed files trigger a partial review of the first 3,000 files. The posted review body explicitly discloses the truncation. Trace events also carry `filesTruncated: true`. Per-file chunking that lets the bot review the remainder in follow-up calls is a v0.2 candidate.
-- Cascade routing, persona config, agentic tool use, and the calibrated-confidence verifier are all roadmap items, not v0.1 features.
+- Cascade routing and the model-based verification gate are built but ship off by default behind `CASCADE_ENABLED` and `VERIFY_ENABLED`. Persona config, agentic tool use, and the calibrated-confidence (AST-based) verifier remain roadmap items that are not built yet.
+
+## AI tools disclosure
+
+This project was built with heavy use of AI tooling, which the course encourages. This section states how and where.
+
+- **Development assistant.** Most of the implementation code, the test suites, the evaluation harness in [`eval/`](./eval), and the prose in this README, [ROADMAP.md](./ROADMAP.md), and [docs/evaluation.md](./docs/evaluation.md) were produced with an AI coding agent (Anthropic's Claude Code). The author directed the work end to end: setting the architecture and scope, defining the evaluation methodology and scoring rubric, choosing the models and the cascade and verification designs, and verifying every quantitative claim against the raw result files and live API runs before committing it.
+- **Adversarial review.** Code changes were re-reviewed by AI review passes acting as independent skeptics. The author checked each finding against the source before acting on it rather than trusting the review output.
+- **Runtime inference.** The bot itself calls OpenAI `gpt-5.x` models for code review, routed through OpenRouter, configured via the `OPENAI_*`, `CASCADE_*`, and `VERIFY_*` environment variables. This is the product's runtime dependency, separate from the development tooling above.
+- **Author ownership.** The choice of problem, the evaluation design, the interpretation of the results, and every decision about what to ship were the author's, and all reported numbers were verified against source data before publication.
 
 ## Security
 
