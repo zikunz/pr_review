@@ -99,19 +99,19 @@ const EnvSchema = z.object({
     .string()
     .default(CASCADE_DEFAULTS.tier1Model)
     .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
-      message: `CASCADE_TIER1_MODEL must resolve to one of: ${KNOWN_MODELS.join(', ')}`,
+      message: `CASCADE_TIER1_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
     }),
   CASCADE_TIER2_MODEL: z
     .string()
     .default(CASCADE_DEFAULTS.tier2Model)
     .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
-      message: `CASCADE_TIER2_MODEL must resolve to one of: ${KNOWN_MODELS.join(', ')}`,
+      message: `CASCADE_TIER2_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
     }),
   CASCADE_TIER3_MODEL: z
     .string()
     .default(CASCADE_DEFAULTS.tier3Model)
     .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
-      message: `CASCADE_TIER3_MODEL must resolve to one of: ${KNOWN_MODELS.join(', ')}`,
+      message: `CASCADE_TIER3_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
     }),
   // Patch character count threshold that divides Tier 2 from Tier 3. PRs
   // whose total code-file patch is above this value are routed to the
