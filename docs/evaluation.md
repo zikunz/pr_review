@@ -21,6 +21,7 @@
 | Agentic gate across three vendors | gpt-5.5, Opus 4.8, and Gemini 3.1 Pro each read real source on all 26 findings and dropped 24 to 25, keeping the same one finding; the agentic gain is not OpenAI-specific |
 | One-click fix suggestions, 8 planted bugs | the bot offered a fix on 7 of 8 (a correct abstention on the 8th) and 6 of the 7 fixes are correct; one over-eager wrong suggestion on a multi-line fix |
 | PR walkthrough quality, 7-PR sample | every changed file described on 7 of 7 PRs; 18 of 20 items accurate, 2 hallucinated a file not in the diff (a changelog, a typings file) |
+| Large-scale precision, 200 PRs / 19 repos / 6 languages | judge-scored false-positive rate 90% (95% CI 85-93%), a calibrated lower bound; the 22-PR noise result holds across the ecosystem |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -316,6 +317,20 @@ The failure mode is hallucination. Two of the twenty items describe a file that 
 
 ---
 
+## Experiment 15: How noisy is the bot at scale?
+
+Experiments 1 and 8 measured noise on 22 PRs from four repos, flagged as a method demonstration rather than a precise rate. This experiment scales that to 200 real merged PRs from 19 major repositories across 6 languages. Each PR runs through the deployed model's exact review path, and every diff-anchored finding is scored by a separate, balanced LLM judge (gpt-5.3-codex, a different model from the reviewer). The judge is validated against the 83 hand-scored findings first, matching the hand labels on 78% of the false positives and keeping 3 of the 4 real or borderline ones, so its rate is calibrated and, because it under-calls false positives, a lower bound. The method and per-language verdicts are in [`eval/largescale-scores.md`](../eval/largescale-scores.md).
+
+| Measure | Result |
+|---|---|
+| PRs, repos, languages | 200, 19, 6 |
+| Findings posted | 232 (1.16 per PR) |
+| Judge-scored false positives | 208 of 232, 90% (95% CI 85 to 93%) |
+
+The roughly 90% false-positive rate holds at scale. The 22-PR result was not an artifact of four repositories. Across 19 repos and six languages, about nine in ten of the deployed model's findings are false positives, and since the judge under-calls them, the true rate is at least that. The well-sampled languages, JavaScript, TypeScript, and Python, land between 79% and 97%. This is the project's central precision claim made into a measured rate rather than a demonstration. The run cost about $5 at OpenRouter prices and was held inside budget by a live balance floor.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -329,7 +344,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 ## Limitations
 
 - **Recall scope.** Recall was measured on planted, diff-evident bugs. A finding was counted as a catch if it was anchored to a valid diff line within the planted fixture's file. The pipeline did not verify that the finding described the planted bug or require any particular severity. Recall on subtle, cross-file, or semantic bugs is untested and would require a labeled dataset of known real regressions.
-- **Sample size and selection.** The noise measurement covers 22 merged PRs drawn as the most recent qualifying PRs from four high-profile, heavily reviewed repositories, a selection that likely understates false positive rates on lower-quality or internal code. At 22 PRs this is a method demonstration, not a precise rate.
+- **Sample size and selection.** The noise measurement covers 22 merged PRs drawn as the most recent qualifying PRs from four high-profile, heavily reviewed repositories, a selection that likely understates false positive rates on lower-quality or internal code. At 22 PRs this is a method demonstration, not a precise rate. Experiment 15 scales it to 200 PRs across 19 repositories and 6 languages and finds the same roughly 90% rate, judge-scored and validated against the hand labels.
 - **Scoring scope.** Experiment 8 hand-scores every finding for precision. Those labels are the author's judgments against the code, not a model's, and several rest on source outside the frozen diff fetched from the merged projects. The boundary findings are flagged rather than rounded.
 - **Same-vendor coverage.** Experiment 1's clean noise comparison covers same-vendor generators only. Experiment 6 addresses the verifier side by re-running the gate with cross-vendor verifiers (Gemini 3.1 Pro and Opus 4.8), which reached the same verdicts on 23 to 25 of 26 findings. Cross-vendor coverage of the base-model noise comparison itself remains future work, since Opus returned provider-routing 404s as a generator in the noise panel.
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
@@ -382,6 +397,10 @@ npx tsx eval/suggestion-eval.ts
 
 # Walkthrough quality (Experiment 14): hand-scored over a 7-PR sample
 npx tsx eval/walkthrough-eval.ts
+
+# Large-scale precision benchmark (Experiment 15): fetch reviewable PRs, then review + judge
+PER_REPO=15 npx tsx eval/fetch-prs.ts                            # freeze the PR set (gh auth)
+SKIP_VALIDATE=1 TARGET_PRS=200 npx tsx eval/largescale-eval.ts   # resumable, live-balance capped
 
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs

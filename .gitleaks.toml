@@ -1,19 +1,23 @@
 # gitleaks configuration.
 #
 # Extends the default ruleset (full coverage on application code) and allowlists
-# the few files that intentionally contain fake, secret-shaped strings used as
-# fixtures: the trace-redactor tests and the planted hardcoded-secret recall
-# fixture. These values are not real credentials, and the redactor tests need
-# them in cleartext to prove the redaction works.
+# a few files that hold fake or upstream secret-shaped strings rather than real
+# credentials: the trace-redactor tests and the planted hardcoded-secret recall
+# fixture (deliberate fakes the redactor tests need in cleartext), and the
+# large-scale benchmark data, which is frozen diff content captured verbatim
+# from public open-source pull requests. Any secret-shaped string in the latter
+# comes from the upstream public diff, not from this project.
 title = "PR Cascade gitleaks config"
 
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Intentional fake secrets in test and evaluation fixtures"
+description = "Fake fixtures and frozen public-diff evaluation data"
 paths = [
   '''tests/lib/trace\.test\.ts''',
   '''eval/recall-fixtures\.ts''',
   '''eval/eval-recall-results\.jsonl''',
+  '''eval/largescale-prs\.json''',
+  '''eval/eval-largescale\.jsonl''',
 ]
