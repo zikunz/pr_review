@@ -90,16 +90,18 @@ did not track correctness on this set.
 
 ## Notes for re-verification
 
-The author personally verified, from the frozen diffs or the merged source: the
-one clear true positive (React 36566), both borderline mechanisms (axios 10929,
-FastAPI 15563), the Spring 50447 build-file truncation, and the two highest
-confidence false positives (gemini's 1.00 and 0.95 on Spring). The remaining
-false-positive labels were reached by a per-repository review pass and reviewed
-for soundness. Several rest on out-of-diff library internals (the axios `own`
-helper, `https-proxy-agent` v5, `follow-redirects` 1.16) fetched from the pinned
-sources. The headline conclusion (about one real issue, roughly 80 false
-positives, confidence not tracking correctness) is robust to the exact treatment
-of the two borderline findings.
+The author read the frozen diff for every one of the 20 PRs and confirmed each of
+the 83 verdicts directly against it, fetching the merged source where a
+refutation depended on code outside the diff (the axios `own` helper,
+`https-proxy-agent` v5, `follow-redirects` 1.16, the Spring `RabbitProperties` and
+jarmode sources, and the mkdocs loader). The load-bearing judgments were verified
+first. These are the one clear true positive (React 36566, confirmed from the
+full flush control flow), both borderline mechanisms (axios 10929, FastAPI
+15563), and every finding at confidence 0.95 or above, all of which are false,
+including gemini's 1.00 jarmode claim that the merged, passing test refutes. The
+headline conclusion (about one real issue, roughly 80 false positives, confidence
+not tracking correctness) is robust to the exact treatment of the two borderline
+findings.
 
 ## Adversarial cross-check (Experiment 9)
 
