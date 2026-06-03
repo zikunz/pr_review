@@ -37,3 +37,15 @@ get a correct fix and seven of eight get an actionable one, and the model
 abstains when the fix does not fit a single line. The feature is not perfect.
 It over-suggested on the swallowed-error bug, so the conservative reading is that
 a suggestion is an accelerator the reviewer still confirms, not an auto-apply.
+
+## Applyability on real GitHub
+
+The verdicts above judge the suggestion text. To confirm the suggestions are
+real, applyable GitHub suggestions and not just well-formed strings,
+`eval/suggestion-apply-check.ts` reconstructs the fixture files, opens a scratch
+pull request containing them, posts each suggestion as a GitHub suggestion
+comment on its line, and checks that GitHub accepts and anchors it, which is the
+precondition for the one-click apply affordance. All 9 suggestions were accepted
+and anchored to the correct file and line. The script closes the pull request and
+deletes the branch when it finishes.
+

@@ -296,7 +296,7 @@ The bot attaches a one-click GitHub suggestion to a finding when the fix is an o
 
 The deployed model produced a correct one-click fix for 6 of the 8 planted bugs: the parameterized query for SQL injection, execFile for command injection, the loop bound, the comparison operator, the environment-variable read for the hardcoded secret, and the secure random source. On the path-traversal bug it correctly offered no suggestion, because the fix is not a single line. The one wrong suggestion was on the swallowed-error bug, where the model offered a single-line change that does not stop the empty catch from swallowing, and the real fix spans more than one line, so it should have abstained as it did on path traversal. One of the six correct fixes uses require(), which is right in intent but would not compile in an ES module.
 
-So the one-click fix is usually correct, and the model abstains when the fix does not fit a single line, but the feature has a real failure mode where it over-suggests on a bug whose fix is multi-line. The conservative reading is that a suggestion is an accelerator the reviewer still confirms, not an auto-apply.
+So the one-click fix is usually correct, and the model abstains when the fix does not fit a single line, but the feature has a real failure mode where it over-suggests on a bug whose fix is multi-line. The conservative reading is that a suggestion is an accelerator the reviewer still confirms, not an auto-apply. A separate real-GitHub check (`eval/suggestion-apply-check.ts`) confirmed all 9 suggestions are applyable, each accepted and anchored to its line on a scratch pull request that the check then cleans up.
 
 ---
 
