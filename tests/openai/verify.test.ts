@@ -64,6 +64,7 @@ describe('buildVerifyUserPrompt', () => {
     category: 'security',
     message: 'Hardcoded secret committed in source.',
     confidence: 0.91,
+    suggestion: null,
   };
 
   it('includes the finding and the file diff under an untrusted-input marker', () => {

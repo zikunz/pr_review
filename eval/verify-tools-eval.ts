@@ -58,7 +58,15 @@ const SPEND_CAP_USD = 12;
 const MINI = resolve(process.cwd(), 'eval/eval-results-openai_gpt-5.4-mini.jsonl');
 const PRS = resolve(process.cwd(), 'eval/eval-prs.json');
 const STATIC = resolve(process.cwd(), 'eval/eval-verify-results.jsonl');
-const OUT = resolve(process.cwd(), 'eval/eval-verify-tools.jsonl');
+// Default (gpt-5.5) writes the canonical file; other verifier models get a
+// per-model file so a cross-vendor run does not overwrite the committed result.
+const MODEL_SHORT = MODEL.split('/').pop() ?? MODEL;
+const OUT = resolve(
+  process.cwd(),
+  MODEL_SHORT === 'gpt-5.5'
+    ? 'eval/eval-verify-tools.jsonl'
+    : `eval/eval-verify-tools-${MODEL_SHORT}.jsonl`,
+);
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -254,6 +262,7 @@ async function main(): Promise<void> {
         category: f.category as never,
         message: f.message,
         confidence: f.confidence,
+        suggestion: null,
       },
       fileDiff: [{ filename: f.file, patch }],
       fetcher,

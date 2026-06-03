@@ -26,6 +26,13 @@ export const Finding = z.object({
   category: Category,
   message: z.string().min(1),
   confidence: z.number().min(0).max(1),
+  // An optional one-click fix. When the finding has an obvious, mechanical fix
+  // for the single line it points at, this is the exact full replacement text
+  // for that line, posted as a GitHub ```suggestion block. It is null when the
+  // fix spans multiple lines, is unclear, or the model is not confident in the
+  // exact replacement. Nullable rather than optional so the structured-output
+  // schema stays strict (every field is required, this one may be null).
+  suggestion: z.string().nullable(),
 });
 export type Finding = z.infer<typeof Finding>;
 

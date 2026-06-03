@@ -32,6 +32,7 @@ GUIDELINES
 
 OUTPUT FORMAT
 Return JSON matching the provided schema. Each finding must reference a line that actually exists in the diff (the file name and the line number from the new file side). The category must be one of bug, security, perf, api_misuse, concurrency, or question. Use question when framing a clarifying request. Return at most five findings, preferring the five highest impact issues over a longer list of small ones.
+For the suggestion field, return the exact full replacement text for the single line the finding points at when the fix is an obvious, mechanical change to that one line. The text is applied verbatim in place of that line, so it must be the complete new line, not a diff, a fragment, or a description. Return null when the fix spans multiple lines, is unclear, or you are not confident in the precise replacement, and never suggest a change you are not sure compiles.
 `;
 
 export interface PromptFile {
@@ -39,7 +40,7 @@ export interface PromptFile {
   patch?: string;
 }
 
-function longestBacktickRun(s: string): number {
+export function longestBacktickRun(s: string): number {
   let longest = 0;
   let current = 0;
   for (const ch of s) {

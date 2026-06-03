@@ -17,6 +17,7 @@ const finding: Finding = {
   category: 'bug',
   message: 'The own() helper mutates its argument.',
   confidence: 0.9,
+  suggestion: null,
 };
 const fileDiff = [{ filename: 'lib/http.js', patch: '@@ -1 +1 @@\n+const x = own(a);' }];
 

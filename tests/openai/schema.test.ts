@@ -8,6 +8,7 @@ const validFinding = {
   category: 'bug',
   message: 'Possible null dereference',
   confidence: 0.8,
+  suggestion: null,
 } as const;
 
 describe('ReviewOutput', () => {
@@ -163,6 +164,26 @@ describe('ReviewOutput', () => {
         summary: 'Empty message.',
         overall_assessment: 'comment',
         findings: [{ ...validFinding, message: '' }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a finding carrying a one-line fix suggestion', () => {
+    const parsed = ReviewOutput.parse({
+      summary: 'One fixable issue.',
+      overall_assessment: 'request_changes',
+      findings: [{ ...validFinding, suggestion: '  const total = items.length;' }],
+    });
+    expect(parsed.findings[0]?.suggestion).toBe('  const total = items.length;');
+  });
+
+  it('requires the suggestion field to be present, even if null', () => {
+    const { suggestion: _omit, ...withoutSuggestion } = validFinding;
+    expect(() =>
+      ReviewOutput.parse({
+        summary: 'Missing suggestion.',
+        overall_assessment: 'comment',
+        findings: [withoutSuggestion],
       }),
     ).toThrow();
   });

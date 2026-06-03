@@ -14,6 +14,7 @@ import { selectReviewModel } from '@/lib/cascade';
 import { type CostBreakdown, CostCapExceededError, enforceCostCap, estimateCost } from '@/lib/cost';
 import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
+import { longestBacktickRun } from '@/openai/prompt';
 import { callReview } from '@/openai/review';
 import type { Finding } from '@/openai/schema';
 import { verifyFindings } from '@/openai/verify';
@@ -462,7 +463,12 @@ async function runReview(ctx: ReviewContext): Promise<void> {
   }
 }
 
-function formatFinding(f: Finding): string {
+// A suggestion replaces a single line, so a sane fix is short. Skip rendering a
+// suggestion block longer than this rather than post a wall of code as a
+// one-click change; the finding still posts with its message.
+const MAX_SUGGESTION_CHARS = 4000;
+
+export function formatFinding(f: Finding): string {
   const header = `**[${f.severity.toUpperCase()} | ${f.category}]** confidence ${f.confidence.toFixed(2)}`;
   // The model controls f.message. Convert HTML-significant characters so a
   // crafted finding cannot inject markup, and escape the brackets that start
@@ -477,7 +483,20 @@ function formatFinding(f: Finding): string {
     .replace(/>/g, '&gt;')
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]');
-  return [header, '', safeMessage].join('\n');
+  const parts = [header, '', safeMessage];
+  // A one-click fix, when the model returned an exact replacement for this line.
+  // Rendered as a GitHub ```suggestion block the author can apply in one click.
+  // The content is code applied verbatim in place of the line, so it is fenced
+  // rather than HTML-escaped, and the original text (including its indentation)
+  // is preserved. The fence is made longer than any backtick run inside the
+  // suggestion so a suggestion that itself contains a code fence cannot close
+  // ours early and let attacker-controlled prose escape into the comment body.
+  const trimmed = f.suggestion?.trim();
+  if (trimmed && trimmed.length <= MAX_SUGGESTION_CHARS && f.suggestion) {
+    const fence = '`'.repeat(Math.max(3, longestBacktickRun(f.suggestion) + 1));
+    parts.push('', `${fence}suggestion`, f.suggestion, fence);
+  }
+  return parts.join('\n');
 }
 
 function formatReviewBody(
