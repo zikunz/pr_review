@@ -12,6 +12,8 @@
 
 PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses an OpenAI-compatible API for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
 
+**See it in action:** [the bot reviewing a demo pull request](https://github.com/zikunz/pr_review/pull/15), where it flags a planted SQL injection as a critical finding at 0.99 confidence and a missing-parameter crash as a warning.
+
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md). An offline evaluation of review quality is in [docs/evaluation.md](./docs/evaluation.md).
 
 That evaluation produced a clear headline finding. Across 22 real merged pull requests, the cheap deployed model is noisy (26 findings, nearly all false positives) while stronger models stay quiet on the same code, yet every OpenAI model tested catches 100% of planted, diff-evident bugs. So for code review the differentiator is precision, not recall. A refutation-first verification gate built on that insight removes 24 of those 26 noisy findings while preserving every planted-bug catch.
