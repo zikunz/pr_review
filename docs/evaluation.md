@@ -22,6 +22,7 @@
 | One-click fix suggestions, 8 planted bugs | the bot offered a fix on 7 of 8 (a correct abstention on the 8th) and 6 of the 7 fixes are correct; one over-eager wrong suggestion on a multi-line fix |
 | PR walkthrough quality, 7-PR sample | every changed file described on 7 of 7 PRs; 18 of 20 items accurate, 2 hallucinated a file not in the diff (a changelog, a typings file) |
 | Large-scale precision, 200 PRs / 19 repos / 6 languages | judge-scored false-positive rate 90% (95% CI 85-93%), a calibrated lower bound; the 22-PR noise result holds across the ecosystem |
+| Severity vs correctness, 83 hand labels + 200 PRs | every finding marked critical was a false positive (23/23 across both sets); the severity label does not track correctness, like confidence |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -331,6 +332,22 @@ The roughly 90% false-positive rate holds at scale. The 22-PR result was not an 
 
 ---
 
+## Experiment 16: Does the bot's severity label track correctness?
+
+The model tags each finding critical, warning, or info. If that label carried signal, the critical findings would be the most likely to be real. This experiment computes the false-positive rate per severity, with no model calls, from two sources: the 83 hand-scored findings (Experiment 8, the ground truth) and the 200-PR run (Experiment 15, judge-scored). The script is `eval/severity-eval.ts`.
+
+![Bar chart of false-positive rate by the bot's severity label. Critical findings are 100 percent false positive in both the hand-labeled set and the 200-PR run, while warning and info sit at 87 to 95 percent, so the highest-severity label is the least likely to be real.](./severity.svg)
+
+| Severity | Hand-labeled (83) | 200-PR (judge-scored) |
+|---|---|---|
+| critical | 11/11 = 100% | 12/12 = 100% |
+| warning | 58/61 = 95% | 65/75 = 87% |
+| info | 10/11 = 91% | 11/11 = 100% |
+
+The severity label does not track correctness. Every one of the 23 findings the bot marked critical, across both the hand-labeled set and the 200-PR run, was a false positive. The findings it marked info, the lowest severity, were no worse and slightly better. So a reviewer who triaged by the bot's severity would be steered toward exactly the findings least likely to be real. This is the calibration result of Experiment 10 in a second signal. Like the confidence number, the severity label carries no information about whether a finding is real, and at the top level it is actively misleading. It is one more reason the bot needs an external verification gate rather than its own self-reported priority.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -401,6 +418,9 @@ npx tsx eval/walkthrough-eval.ts
 # Large-scale precision benchmark (Experiment 15): fetch reviewable PRs, then review + judge
 PER_REPO=15 npx tsx eval/fetch-prs.ts                            # freeze the PR set (gh auth)
 SKIP_VALIDATE=1 TARGET_PRS=200 npx tsx eval/largescale-eval.ts   # resumable, live-balance capped
+
+# Severity vs correctness (Experiment 16): false-positive rate by severity label (no model calls)
+npx tsx eval/severity-eval.ts
 
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs
