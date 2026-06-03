@@ -101,7 +101,7 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 
 ## Evaluation
 
-[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs eight experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
+[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs nine experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
 
 1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong. gpt-5.5 and gpt-5.3-codex posted 6 and 5 on the same code.
 2. **Recall test.** Eight diffs with one planted, diff-evident bug each. All three OpenAI models caught 8/8.
@@ -111,6 +111,7 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 6. **Cross-vendor verification.** Re-running the gate with cross-vendor verifiers over mini's 26 findings. Gemini 3.1 Pro killed 25/26 and Opus 4.8 killed 23/26, agreeing with the same-vendor panel on 23 to 25 of 26, so the gate's noise removal is not a same-vendor artifact. The one split was Opus keeping the axios false positive that needs out-of-diff context to refute.
 7. **Multi-agent review.** A planner, reviewer, and critic pipeline on gpt-5.5 posted 9 findings on the 22 PRs versus 6 for single-pass, while preserving 8/8 planted-bug recall. The collaboration made the review more thorough rather than more precise, the opposite direction from the verification gate.
 8. **Per-finding precision audit.** Every finding the six configurations posted (83 in total) was hand-scored against the code. There was one clear true positive, surfaced by three configurations, and roughly 80 false positives. Every finding at confidence 0.95 or above was wrong, which confirms that precision, not recall, is the bottleneck and that model confidence does not track correctness.
+9. **Gate against ground truth.** Running the production verification gate over all 83 findings, measured against the hand-scored labels, dropped 85% of the false positives across every configuration while preserving the one real bug. A refutation-first gate is a precision filter that works on any base model's output, which is the result the audit asks for.
 
 Across experiments 4 and 5 the bottleneck is consistently the model's *use* of context, not its availability, which is why context-grounding and the verification gate are complementary rather than competing.
 

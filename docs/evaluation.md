@@ -15,6 +15,7 @@
 | Cross-vendor verification over mini's 26 findings | Gemini 3.1 Pro killed 25/26, Opus 4.8 killed 23/26, both agreeing with the same-vendor panel on 23 to 25 of 26 |
 | Multi-agent review (planner, reviewer, critic) on gpt-5.5 | 9 findings vs 6 for single-pass, recall 8/8 preserved; more thorough, not more precise |
 | Per-finding precision audit, all 83 findings | 1 clear true positive, roughly 80 false positives; every finding at confidence 0.95+ was wrong |
+| Verification gate over all 83 findings | dropped 67 of 79 false positives (85%); kept the real bug (2 of its 3 detections) |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -208,6 +209,22 @@ This is the strongest form of the central result. Recall was never the problem. 
 
 ---
 
+## Experiment 9: The gate against the full hand-scored set
+
+Experiment 8 produced a per-finding ground truth. This experiment runs the shipped verification gate (the production verifier, gpt-5.5, refutation-first) over all 83 findings and measures it against that ground truth rather than against itself.
+
+| Measure | Result |
+|---|---|
+| False positives dropped by the gate | 67 of 79 (85%) |
+| Clear true positive | preserved, kept by 2 of its 3 detections |
+| Borderline finding | dropped |
+
+The gate removed 85 percent of the false positives across all six configurations, not just the cheap model it was tuned against. That is the core claim made concrete. A refutation-first gate is a precision filter that works on any base model's output, and it is the intervention the per-finding precision result asks for.
+
+The result is honest about two limits. The gate kept 12 false positives, so it is a strong filter, not a perfect one. And the one real bug was found by three configurations, of which the gate kept the two precisely worded detections (gemini and the multi-agent pipeline) and dropped the third, mini's vaguer description at 0.73 confidence that the verifier could not confirm from the wording. So the gate preserved the bug, but its recall on a real finding depends on how clearly that finding is stated. This is the cost of a refutation-first rule, and it is why the gate fails open on any single confirmation rather than requiring all of them.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -264,6 +281,9 @@ CV_VERIFIERS=anthropic/claude-opus-4.8 npx tsx eval/crossvendor-verify.ts  # Opu
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs
 MA_MODE=recall npx tsx eval/multiagent-review.ts   # recall arm over the planted bugs
+
+# Gate against the full hand-scored set: run the production verifier over all 83 findings
+npx tsx eval/gate-full-audit.ts
 ```
 
 Per-finding precision verdicts (Experiment 8) are recorded in [`eval/finding-scores.md`](./finding-scores.md).
