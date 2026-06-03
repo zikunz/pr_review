@@ -19,12 +19,12 @@ elsewhere, a build file, a pinned library version). Those were resolved against
 the real merged source fetched from each project, the same way Experiment 4
 treated the axios `own` helper. Verdicts that rest on out-of-diff source are
 marked as such below. The labels are the author's judgments, not a model's, and
-the two borderline cases are flagged honestly rather than rounded to a clean
+the borderline cases are flagged honestly rather than rounded to a clean
 number.
 
 ## Scope
 
-83 distinct findings across 20 PRs: cross-model noise panel 46 (mini 26, gpt-5.5
+83 findings across 20 PRs: cross-model noise panel 46 (mini 26, gpt-5.5
 6, gpt-5.3-codex 5, gemini-3.1-pro 9, claude-opus-4.8 0), grounding re-review 28,
 and the multi-agent pipeline 9. The verification and cross-vendor result files
 re-judge mini's 26 and are not re-counted here.
@@ -33,19 +33,19 @@ re-judge mini's 26 and are not re-counted here.
 
 | Configuration | Findings | Clear true positive | Borderline | False positive |
 |---|---|---|---|---|
-| gpt-5.4-mini (deployed) | 26 | 1 | 1 | 24 |
+| gpt-5.4-mini (deployed) | 26 | 1 | 0 | 25 |
 | gpt-5.5 | 6 | 0 | 1 | 5 |
 | gpt-5.3-codex | 5 | 0 | 0 | 5 |
 | gemini-3.1-pro-preview | 9 | 1 | 0 | 8 |
 | claude-opus-4.8 | 0 | 0 | 0 | 0 |
 | grounded-mini | 28 | 0 | 0 | 28 |
-| multi-agent gpt-5.5 | 9 | 1 | 1 | 7 |
-| **distinct issues** | **83** | **1** | **2** | **80** |
+| multi-agent gpt-5.5 | 9 | 1 | 0 | 8 |
+| **total detections** | **83** | **3** | **1** | **79** |
 
 The single clear true positive is one underlying bug, surfaced independently by
-three configurations (mini, gemini, multi-agent). Counting detections rather
-than distinct issues: 3 clear-true-positive detections, 3 borderline detections,
-77 false-positive detections.
+three configurations (mini, gemini, multi-agent). The 83 rows are detections,
+not distinct issues: 3 true-positive detections of that one bug, 1 borderline
+detection (axios 10929), and 79 false-positive detections.
 
 ## The one clear true positive
 
@@ -60,7 +60,12 @@ by the author directly from the frozen diff (the `catch` returns without
 (confidence 0.73, mechanism imprecise), gemini-3.1-pro (high), and the
 multi-agent pipeline (0.9).
 
-## The two borderline findings
+## The two boundary findings
+
+Two findings sit on the line between real and false. The first is counted as the
+one borderline in the table above. The second is a borderline false positive and
+is counted among the false positives, because its harm is not realized in the
+repository.
 
 - **axios PR 10929, redirect credential restoration (gpt-5.5, 0.76).** The
   same-origin check compares the redirect target to the fixed original origin
@@ -93,7 +98,7 @@ perfect (`eval/calibration.ts`, result in `eval/eval-calibration.json`).
 
 ## Notes for re-verification
 
-The author read the frozen diff for every one of the 20 PRs and confirmed each of
+The author read the frozen diff for every one of the 20 PRs with findings and confirmed each of
 the 83 verdicts directly against it, fetching the merged source where a
 refutation depended on code outside the diff (the axios `own` helper,
 `https-proxy-agent` v5, `follow-redirects` 1.16, the Spring `RabbitProperties` and
@@ -103,8 +108,7 @@ full flush control flow), both borderline mechanisms (axios 10929, FastAPI
 15563), and every finding at confidence 0.95 or above, all of which are false,
 including gemini's 1.00 jarmode claim that the merged, passing test refutes. The
 headline conclusion (about one real issue, roughly 80 false positives, confidence
-not tracking correctness) is robust to the exact treatment of the two borderline
-findings.
+not tracking correctness) is robust to the exact treatment of the boundary findings.
 
 ## Adversarial cross-check (Experiment 9)
 
@@ -113,8 +117,8 @@ kept 12 findings that this audit labels false positive. Each of those 12 was
 re-examined to test whether the gate had caught a real bug this audit missed.
 None had. The 12 are the same false positives already identified here, including
 the two yaml-loader findings, the cached-agent TLS finding, the dropped-exports
-finding, the validation-alias finding, and the two borderline non-Markdown-asset
-findings. The highest-confidence of them, gemini's 1.00 claim that the Spring
+finding, the validation-alias finding, and the FastAPI non-Markdown-asset finding (a
+borderline false positive, surfaced twice). The highest-confidence of them, gemini's 1.00 claim that the Spring
 jarmode command writes to the filesystem root, was re-verified directly against
 the merged, passing test, which asserts the extracted file lands under the
 temporary directory rather than the root. So the gate's 12 kept findings are

@@ -199,7 +199,7 @@ Common scopes are the top level source directories (`webhook`, `github`, `openai
 - LangChain or LangGraph wrappers. Direct API calls everywhere.
 - Custom inference serving infrastructure. The project relies on managed LLM APIs for v0.1 through v0.3.
 - General-purpose chatbot interface. The system is event-driven only (GitHub webhooks).
-- Mock LLM responses in unit tests. Tests cover deterministic logic (HMAC, diff parsing, idempotency, route dispatch). LLM calls are exercised through end-to-end smoke tests on real PRs.
+- Mock LLM responses in unit tests. Tests cover deterministic logic (HMAC, diff parsing, idempotency, route dispatch). LLM calls are exercised end to end by the offline evaluation harness, which replays real merged PRs through the full review path.
 
 ---
 

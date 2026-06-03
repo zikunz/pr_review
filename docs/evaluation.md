@@ -179,7 +179,7 @@ The bot reviews a PR in one model call. A natural v0.3 question is whether a mul
 | Pipeline | Findings on the 22 PRs | Real findings (hand-scored) | Planted-bug recall |
 |---|---|---|---|
 | Single-pass gpt-5.5 (Experiment 1) | 6 | 0 clear, 1 borderline | 8 / 8 |
-| Multi-agent gpt-5.5 (planner, reviewer, critic) | 9 | 1 clear, 1 borderline | 8 / 8 |
+| Multi-agent gpt-5.5 (planner, reviewer, critic) | 9 | 1 clear, 0 borderline | 8 / 8 |
 
 The reviewer produced 18 candidate findings and the critic pruned them to 9. The collaboration increased finding volume rather than reducing it. Recall was preserved, since the critic kept all eight planted bugs. On the per-finding hand review (Experiment 8), the multi-agent pipeline surfaced exactly one clear real bug, the same React control-flow defect the deployed model also found, and its other findings were false positives.
 
@@ -195,18 +195,18 @@ Experiments 1 to 7 counted findings and scored a sample (the three confident cri
 
 | Configuration | Findings | Clear true positive | Borderline | False positive |
 |---|---|---|---|---|
-| gpt-5.4-mini (deployed) | 26 | 1 | 1 | 24 |
+| gpt-5.4-mini (deployed) | 26 | 1 | 0 | 25 |
 | gpt-5.5 | 6 | 0 | 1 | 5 |
 | gpt-5.3-codex | 5 | 0 | 0 | 5 |
 | gemini-3.1-pro-preview | 9 | 1 | 0 | 8 |
 | grounded-mini | 28 | 0 | 0 | 28 |
-| multi-agent gpt-5.5 | 9 | 1 | 1 | 7 |
+| multi-agent gpt-5.5 | 9 | 1 | 0 | 8 |
 
-Across all 83 findings there was exactly one clear true positive, a control-flow bug in React PR 36566 that masks a decode error, surfaced independently by gpt-5.4-mini, gemini-3.1-pro, and the multi-agent pipeline. Two further findings are borderline (an axios redirect-credential hardening gap and a FastAPI latent asset-staging gap). Every other finding, roughly 80 of 83, was a false positive.
+Across all 83 findings there was exactly one clear true positive, a control-flow bug in React PR 36566 that masks a decode error, surfaced independently by gpt-5.4-mini, gemini-3.1-pro, and the multi-agent pipeline. One further finding is genuinely borderline, an axios redirect-credential hardening gap that leans real. Every other finding, roughly 80 of 83, was a false positive, including a FastAPI latent asset-staging gap that leans borderline but whose harm is never realized in the repository.
 
 Every finding at confidence 0.95 or above was a false positive, including one at 1.00 (gemini) and mini's confident criticals at 0.96 to 0.98. The one clear true positive carried confidences of 0.73 to 0.90. High model confidence did not track correctness on this set.
 
-This is the strongest form of the central result. Recall was never the problem. Every configuration caught the planted bugs. Precision was the problem, and it stayed low even for the frontier models, even with full-file grounding, and even with a multi-agent pipeline. A verification gate that removes unconfirmed findings is the intervention that targets this directly. Some verdicts rest on source outside the frozen diff (a helper, a build file, a pinned library version), resolved against the real merged code the same way Experiment 4 was, and the two borderline calls are flagged rather than rounded.
+This is the strongest form of the central result. Recall was never the problem. Every configuration caught the planted bugs. Precision was the problem, and it stayed low even for the frontier models, even with full-file grounding, and even with a multi-agent pipeline. A verification gate that removes unconfirmed findings is the intervention that targets this directly. Some verdicts rest on source outside the frozen diff (a helper, a build file, a pinned library version), resolved against the real merged code the same way Experiment 4 was, and the borderline calls are flagged rather than rounded.
 
 ---
 
@@ -220,7 +220,7 @@ Experiment 8 produced a per-finding ground truth. This experiment runs the shipp
 | Clear true positive | preserved, kept by 2 of its 3 detections |
 | Borderline finding | dropped |
 
-The gate removed 85 percent of the false positives across all six configurations, not just the cheap model it was tuned against. That is the core claim made concrete. A refutation-first gate is a precision filter that works on any base model's output, and it is the intervention the per-finding precision result asks for.
+The gate removed 85 percent of the false positives across all six configurations, not just the cheap model it was tuned against. That is the core claim made concrete. A refutation-first gate is a general precision filter, not a tweak that only helps the cheap model.
 
 The result is honest about two limits. The gate kept 12 false positives, so it is a strong filter, not a perfect one. And the one real bug was found by three configurations, of which the gate kept the two precisely worded detections (gemini and the multi-agent pipeline) and dropped the third, mini's vaguer description at 0.73 confidence that the verifier could not confirm from the wording. So the gate preserved the bug, but its recall on a real finding depends on how clearly that finding is stated. This is the cost of a refutation-first rule, and it is why the gate fails open on any single confirmation rather than requiring all of them.
 
@@ -238,9 +238,11 @@ Every finding carries a self-reported confidence, and Experiment 8 gives a hand 
 | 0.70 to 0.80 | 22 | 0.756 | 0.045 |
 | below 0.70 | 18 | 0.631 | 0.000 |
 
+![Reliability diagram over the 83 findings. The model self-reported confidence runs along the x-axis and the actual fraction of real findings along the y-axis. A calibrated model would track the dashed diagonal, but observed accuracy stays near zero across the whole range and the gap to the diagonal is widest at the highest confidence.](./reliability.svg)
+
 The model's mean self-reported confidence is 0.80. Its actual accuracy is 0.036. That is an overconfidence gap of 0.76, an Expected Calibration Error of 0.76, and a Brier score of 0.63, where 0 is perfect. The 13 findings the model was most sure about, at 0.95 and above, were wrong every time. Accuracy did not rise with confidence. It stayed near zero across the whole range.
 
-This is the precision result restated as a calibration failure. The confidence number carries almost no information about whether a finding is real, so a downstream tool cannot threshold on confidence to filter noise. Re-judging each finding against the diff is the alternative, and Experiment 9 measured the gate removing 85 percent of the false positives. Counting the two borderline findings as correct does not change the picture (accuracy 0.048, Expected Calibration Error 0.75).
+This is the precision result restated as a calibration failure. The confidence number carries almost no information about whether a finding is real, so a downstream tool cannot threshold on confidence to filter noise. Re-judging each finding against the diff is the alternative, and Experiment 9 measured the gate removing 85 percent of the false positives. Counting the one borderline finding as correct does not change the picture (accuracy 0.048, Expected Calibration Error 0.75).
 
 ---
 
@@ -258,7 +260,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 
 - **Recall scope.** Recall was measured on planted, diff-evident bugs. A finding was counted as a catch if it was anchored to a valid diff line within the planted fixture's file. The pipeline did not verify that the finding described the planted bug or require any particular severity. Recall on subtle, cross-file, or semantic bugs is untested and would require a labeled dataset of known real regressions.
 - **Sample size and selection.** The noise measurement covers 22 merged PRs drawn as the most recent qualifying PRs from four high-profile, heavily reviewed repositories, a selection that likely understates false positive rates on lower-quality or internal code. At 22 PRs this is a method demonstration, not a precise rate.
-- **Scoring scope.** Experiment 8 hand-scores every finding for precision. Those labels are the author's judgments against the code, not a model's, and several rest on source outside the frozen diff fetched from the merged projects. The two borderline findings are flagged rather than rounded.
+- **Scoring scope.** Experiment 8 hand-scores every finding for precision. Those labels are the author's judgments against the code, not a model's, and several rest on source outside the frozen diff fetched from the merged projects. The boundary findings are flagged rather than rounded.
 - **Same-vendor coverage.** Experiment 1's clean noise comparison covers same-vendor generators only. Experiment 6 addresses the verifier side by re-running the gate with cross-vendor verifiers (Gemini 3.1 Pro and Opus 4.8), which reached the same verdicts on 23 to 25 of 26 findings. Cross-vendor coverage of the base-model noise comparison itself remains future work, since Opus returned provider-routing 404s as a generator in the noise panel.
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
 - **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of critical-severity findings rather than a verified false-positive rate.
@@ -269,10 +271,10 @@ Adding full-file context did not substitute for the gate. The most confident fal
 ## How to reproduce
 
 ```bash
-# Freeze PRs — uses gh CLI auth (gh auth login), no OPENAI_API_KEY needed for this step
+# Freeze PRs: uses gh CLI auth (gh auth login), no OPENAI_API_KEY needed for this step
 npx tsx eval/eval-replay.ts --select
 
-# Run a model — requires OPENAI_API_KEY and OPENAI_BASE_URL in .env.local
+# Run a model: requires OPENAI_API_KEY and OPENAI_BASE_URL in .env.local
 npx tsx eval/eval-replay.ts --model openai/gpt-5.4-mini
 
 # Run the verification layer over mini's results
@@ -306,6 +308,9 @@ npx tsx eval/gate-full-audit.ts
 
 # Confidence calibration: reliability table, ECE, and Brier from the hand labels (no model calls)
 npx tsx eval/calibration.ts
+
+# Render the reliability diagram (docs/reliability.svg) from the calibration result
+npx tsx eval/reliability-diagram.ts
 ```
 
 Per-finding precision verdicts (Experiment 8) are recorded in [`eval/finding-scores.md`](./finding-scores.md).

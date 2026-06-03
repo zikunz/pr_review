@@ -10,7 +10,7 @@
 
 ## Overview
 
-PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses OpenAI for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
+PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding. It uses an OpenAI-compatible API for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
 
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md). An offline evaluation of review quality is in [docs/evaluation.md](./docs/evaluation.md).
 
@@ -101,7 +101,9 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 
 ## Evaluation
 
-[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs ten experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
+[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs ten experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios. The sharpest single result is Experiment 10, the confidence calibration shown below: the models report high confidence on findings that are almost never real.
+
+![Reliability diagram of the deployed models' confidence over the 83 hand-scored findings. Model self-reported confidence is on the x-axis and the actual fraction of real findings on the y-axis. A calibrated model would follow the dashed diagonal, but observed accuracy stays near zero across the whole range, and the gap to the diagonal is widest at the highest confidence.](./docs/reliability.svg)
 
 1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong. gpt-5.5 and gpt-5.3-codex posted 6 and 5 on the same code.
 2. **Recall test.** Eight diffs with one planted, diff-evident bug each. All three OpenAI models caught 8/8.
@@ -111,7 +113,7 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 6. **Cross-vendor verification.** Re-running the gate with cross-vendor verifiers over mini's 26 findings. Gemini 3.1 Pro killed 25/26 and Opus 4.8 killed 23/26, agreeing with the same-vendor panel on 23 to 25 of 26, so the gate's noise removal is not a same-vendor artifact. The one split was Opus keeping the axios false positive that needs out-of-diff context to refute.
 7. **Multi-agent review.** A planner, reviewer, and critic pipeline on gpt-5.5 posted 9 findings on the 22 PRs versus 6 for single-pass, while preserving 8/8 planted-bug recall. The collaboration made the review more thorough rather than more precise, the opposite direction from the verification gate.
 8. **Per-finding precision audit.** Every finding the six configurations posted (83 in total) was hand-scored against the code. There was one clear true positive, surfaced by three configurations, and roughly 80 false positives. Every finding at confidence 0.95 or above was wrong, which confirms that precision, not recall, is the bottleneck and that model confidence does not track correctness.
-9. **Gate against ground truth.** Running the production verification gate over all 83 findings, measured against the hand-scored labels, dropped 85% of the false positives across every configuration while preserving the one real bug. A refutation-first gate is a precision filter that works on any base model's output, which is the result the audit asks for.
+9. **Gate against ground truth.** Running the production verification gate over all 83 findings, measured against the hand-scored labels, dropped 85% of the false positives across every configuration while preserving the one real bug. A refutation-first gate is a general precision filter, not a tweak that only helps the cheap model.
 10. **Confidence calibration.** Scoring the self-reported confidence against the hand labels gives an Expected Calibration Error of 0.76 and a Brier score of 0.63, against 0 for a perfect predictor. Mean confidence was 0.80 while actual accuracy was 0.036, and the 13 findings at 0.95 confidence or above were wrong every time. The confidence number carries almost no signal about whether a finding is real, so a tool cannot filter noise by thresholding on it, which is why the verification gate re-judges each finding against the diff instead.
 
 Across experiments 4 and 5 the bottleneck is consistently the model's *use* of context, not its availability, which is why context-grounding and the verification gate are complementary rather than competing.

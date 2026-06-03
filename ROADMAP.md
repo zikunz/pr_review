@@ -131,7 +131,7 @@ New capabilities.
 
 The frontier piece. Tool-based verification with calibrated confidence.
 
-This is what differentiates the project from commercial bots and the only component that is genuinely frontier in 2026.
+This is what differentiates the project from commercial bots, and the clearest frontier component of the system in 2026.
 
 Shipped early, behind a flag. A model-based refutation-first verification gate (`VERIFY_ENABLED`, off by default) is implemented in the review path. Every finding that passes diff-anchor validation is audited by a second model, and a finding is dropped only when the verifier panel unanimously refutes it from the diff. An offline evaluation validated the approach before it was wired in. This is a model-based first cut of the verification layer. The AST and calibrated-confidence capabilities below remain the deeper v0.3 work.
 
