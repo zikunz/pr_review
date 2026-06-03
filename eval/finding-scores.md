@@ -100,3 +100,18 @@ helper, `https-proxy-agent` v5, `follow-redirects` 1.16) fetched from the pinned
 sources. The headline conclusion (about one real issue, roughly 80 false
 positives, confidence not tracking correctness) is robust to the exact treatment
 of the two borderline findings.
+
+## Adversarial cross-check (Experiment 9)
+
+Experiment 9 ran the verification gate (gpt-5.5) over all 83 findings. The gate
+kept 12 findings that this audit labels false positive. Each of those 12 was
+re-examined to test whether the gate had caught a real bug this audit missed.
+None had. The 12 are the same false positives already identified here, including
+the two yaml-loader findings, the cached-agent TLS finding, the dropped-exports
+finding, the validation-alias finding, and the two borderline non-Markdown-asset
+findings. The highest-confidence of them, gemini's 1.00 claim that the Spring
+jarmode command writes to the filesystem root, was re-verified directly against
+the merged, passing test, which asserts the extracted file lands under the
+temporary directory rather than the root. So the gate's 12 kept findings are
+gate false-keeps, not real bugs, and the one-clear-true-positive ground truth
+holds under this adversarial check.
