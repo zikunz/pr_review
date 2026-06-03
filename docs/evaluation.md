@@ -20,6 +20,7 @@
 | Agentic (tool-using) gate over mini's 26 findings | read real source on all 26 (190 reads), dropped 25 vs the static panel's 24, refuting one false positive the static gate kept; it still dropped the vague real-bug detection |
 | Agentic gate across three vendors | gpt-5.5, Opus 4.8, and Gemini 3.1 Pro each read real source on all 26 findings and dropped 24 to 25, keeping the same one finding; the agentic gain is not OpenAI-specific |
 | One-click fix suggestions, 8 planted bugs | the bot offered a fix on 7 of 8 (a correct abstention on the 8th) and 6 of the 7 fixes are correct; one over-eager wrong suggestion on a multi-line fix |
+| PR walkthrough quality, 7-PR sample | every changed file described on 7 of 7 PRs; 18 of 20 items accurate, 2 hallucinated a file not in the diff (a changelog, a typings file) |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -299,6 +300,22 @@ So the one-click fix is usually correct, and the model abstains when the fix doe
 
 ---
 
+## Experiment 14: Is the PR walkthrough accurate?
+
+The opt-in walkthrough summarizes a change as a table at the top of the review. This experiment runs the walkthrough generator over a 7-PR sample of the frozen set, from a one-line null-check removal to a seven-file cleanup, and hand-scores each item for coverage and accuracy against the diff. The per-PR verdicts are in [`eval/walkthrough-scores.md`](../eval/walkthrough-scores.md).
+
+| Measure | Result |
+|---|---|
+| PRs with every changed file described | 7 of 7 |
+| Items describing a real change | 18 of 20 |
+| Hallucinated items, a file not in the diff | 2 of 20 |
+
+Coverage was complete. Every changed file is described on all seven PRs, and on the multi-file PRs the walkthrough groups related files into one item rather than padding the list. The descriptions are accurate where they describe a changed file. Spot checks confirm the removed Spring Boot null guard and the axios switch to the `own()` guard for inherited config.
+
+The failure mode is hallucination. Two of the twenty items describe a file that is not in the diff at all, a changelog entry for axios 10929 and a CJS-typings update for axios 10922. Both are plausible changes the PRs did not make, and both are on axios, where most PRs do touch a changelog and the typings, so the model pattern-matched the repository's usual shape and invented the expected-but-absent change. This is the same overconfidence the precision experiments found, in a new place. The walkthrough is a reviewer aid that still needs the diff, not a substitute for it.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -362,6 +379,9 @@ TOOLS_EVAL_MODEL=anthropic/claude-opus-4.8 npx tsx eval/verify-tools-eval.ts
 
 # Suggestion quality (Experiment 13): one-click fixes over the 8 planted bugs
 npx tsx eval/suggestion-eval.ts
+
+# Walkthrough quality (Experiment 14): hand-scored over a 7-PR sample
+npx tsx eval/walkthrough-eval.ts
 
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs
