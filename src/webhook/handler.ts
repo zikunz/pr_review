@@ -17,6 +17,7 @@ import { trace } from '@/lib/trace';
 import { callReview } from '@/openai/review';
 import type { Finding } from '@/openai/schema';
 import { verifyFindings } from '@/openai/verify';
+import { githubFetcher, verifyFindingsWithTools } from '@/openai/verify-tools';
 
 type FileWithPatch = PullRequestFile & { patch: string };
 
@@ -356,16 +357,28 @@ async function runReview(ctx: ReviewContext): Promise<void> {
           cents?: number;
         }
       | undefined;
-    if (env.VERIFY_ENABLED && validFindings.length > 0) {
+    if ((env.VERIFY_TOOLS_ENABLED || env.VERIFY_ENABLED) && validFindings.length > 0) {
       const patchByFile = new Map(filesWithPatch.map((f) => [f.filename, f.patch]));
-      const verified = await verifyFindings(validFindings, patchByFile, env.VERIFY_MODELS);
+      // The agentic gate takes precedence when enabled: a single verifier that
+      // can read repository files at the PR head, rather than the static panel
+      // that judges from the diff alone.
+      const verifyModels = env.VERIFY_TOOLS_ENABLED ? [env.VERIFY_TOOLS_MODEL] : env.VERIFY_MODELS;
+      const verified = env.VERIFY_TOOLS_ENABLED
+        ? await verifyFindingsWithTools(
+            validFindings,
+            patchByFile,
+            env.VERIFY_TOOLS_MODEL,
+            githubFetcher(ctx.installationId, ctx.coords, pr.head.sha),
+            env.VERIFY_TOOLS_MAX_ITERS,
+          )
+        : await verifyFindings(validFindings, patchByFile, env.VERIFY_MODELS);
       findingsToPost = verified.kept;
       let cents: number | undefined;
       try {
         // Exact for the single-model default. Approximate (rated at the first
         // model's price) when several verifier models run.
         cents = estimateCost(
-          env.VERIFY_MODELS[0] ?? result.model,
+          verifyModels[0] ?? result.model,
           verified.usage.inputTokens,
           verified.usage.outputTokens,
           verified.usage.cachedInputTokens,
@@ -374,7 +387,7 @@ async function runReview(ctx: ReviewContext): Promise<void> {
         // Verifier model has no pricing entry. Usage is still traced below.
       }
       verification = {
-        models: env.VERIFY_MODELS,
+        models: verifyModels,
         kept: verified.kept.length,
         dropped: verified.dropped.length,
         errors: verified.errorCount,

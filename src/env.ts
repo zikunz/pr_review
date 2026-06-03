@@ -87,6 +87,25 @@ const EnvSchema = z.object({
     .refine((models) => models.every((m) => KNOWN_MODELS.includes(normalizeModel(m))), {
       message: `VERIFY_MODELS must each resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
     }),
+  // v0.3 agentic verification gate. When VERIFY_TOOLS_ENABLED, the gate uses a
+  // single tool-using verifier that can read real repository files at the PR
+  // head commit before deciding, instead of the static VERIFY_MODELS panel that
+  // judges from the diff alone. Off by default, and it takes precedence over
+  // VERIFY_ENABLED when both are set. See src/openai/verify-tools.ts.
+  VERIFY_TOOLS_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  VERIFY_TOOLS_MODEL: z
+    .string()
+    .default('gpt-5.5')
+    .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
+      message: `VERIFY_TOOLS_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
+    }),
+  // Hard ceiling on tool-calling turns per finding, so one verification cannot
+  // loop indefinitely against the gateway. The verifier fails open if it has not
+  // submitted a verdict within this many turns.
+  VERIFY_TOOLS_MAX_ITERS: z.coerce.number().int().positive().max(20).default(8),
   // v0.2 cascade routing. Off by default (CASCADE_ENABLED=false) so the bot
   // continues to use OPENAI_MODEL for every review until an operator opts in.
   // When enabled, the tier is chosen from the diff signals (see

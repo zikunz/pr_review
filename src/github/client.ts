@@ -108,6 +108,72 @@ export async function fetchPullRequestFiles(
   return { files: all, truncated };
 }
 
+// Reject a file the agentic verifier asks for once it is larger than this, so
+// one read cannot pull a multi-megabyte minified bundle into the prompt.
+const MAX_READ_FILE_BYTES = 512 * 1024;
+
+// Fetch one file's text at a specific commit so the agentic verification gate
+// can inspect a definition that lives outside the diff. Returns null when the
+// path does not exist at that ref (a 404) or is not a regular file, which the
+// caller surfaces to the model as "file not found" rather than failing.
+export async function fetchFileAtRef(
+  installationId: number,
+  coords: RepoCoordinates,
+  path: string,
+  ref: string,
+): Promise<string | null> {
+  const token = await getInstallationToken(installationId);
+  const encodedPath = path
+    .split('/')
+    .filter((seg) => seg.length > 0)
+    .map(encodeURIComponent)
+    .join('/');
+  const response = await fetch(
+    `${GITHUB_API}/repos/${coords.owner}/${coords.repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`,
+    { headers: authHeaders(token), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+  );
+  if (response.status === 404) return null;
+  await expectOk(response, 'fetchFileAtRef');
+  const data = (await response.json()) as {
+    content?: string;
+    encoding?: string;
+    size?: number;
+    type?: string;
+  };
+  if (data.type !== 'file' || typeof data.content !== 'string') return null;
+  if ((data.size ?? 0) > MAX_READ_FILE_BYTES) {
+    return `[file omitted: ${data.size} bytes exceeds the ${MAX_READ_FILE_BYTES}-byte read limit]`;
+  }
+  return Buffer.from(data.content, 'base64').toString('utf8');
+}
+
+export interface RepoTree {
+  paths: string[];
+  truncated: boolean;
+}
+
+// List the repository's file paths at a commit so the verifier can locate where
+// a helper or module is defined before reading it. GitHub flags `truncated` for
+// very large trees; the caller passes that on to the model.
+export async function fetchRepoTree(
+  installationId: number,
+  coords: RepoCoordinates,
+  ref: string,
+): Promise<RepoTree> {
+  const token = await getInstallationToken(installationId);
+  const response = await fetch(
+    `${GITHUB_API}/repos/${coords.owner}/${coords.repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`,
+    { headers: authHeaders(token), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
+  );
+  await expectOk(response, 'fetchRepoTree');
+  const data = (await response.json()) as {
+    tree?: Array<{ path: string; type: string }>;
+    truncated?: boolean;
+  };
+  const paths = (data.tree ?? []).filter((e) => e.type === 'blob').map((e) => e.path);
+  return { paths, truncated: data.truncated === true };
+}
+
 export interface InlineReviewComment {
   path: string;
   line: number;

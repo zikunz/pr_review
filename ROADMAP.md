@@ -133,7 +133,7 @@ The frontier piece. Tool-based verification with calibrated confidence.
 
 This is what differentiates the project from commercial bots, and the clearest frontier component of the system in 2026.
 
-Shipped early, behind a flag. A model-based refutation-first verification gate (`VERIFY_ENABLED`, off by default) is implemented in the review path. Every finding that passes diff-anchor validation is audited by a second model, and a finding is dropped only when the verifier panel unanimously refutes it from the diff. An offline evaluation validated the approach before it was wired in. This is a model-based first cut of the verification layer. The AST and calibrated-confidence capabilities below remain the deeper v0.3 work.
+Shipped early, behind a flag. Two verification gates are implemented in the review path, both off by default. The first is a static refutation-first gate (`VERIFY_ENABLED`): every finding that passes diff-anchor validation is audited by a second model and dropped only when the verifier panel unanimously refutes it from the diff. The second is the agentic, tool-using gate (`VERIFY_TOOLS_ENABLED`), the frontier piece named above: a single verifier that can call `read_file` and `find_files` to inspect the real repository at the PR head commit before deciding, rather than judging from the diff alone. It targets the evaluation's central finding, that the bottleneck is whether the model uses the surrounding code, not whether it has it. Offline evaluations validated both before they were wired in (see [docs/evaluation.md](./docs/evaluation.md)). The AST and calibrated-confidence capabilities below remain the deeper v0.3 work.
 
 New capabilities.
 

@@ -123,8 +123,10 @@ pr_review/
 │   │   └── diff.ts           parse unified diff for valid comment lines
 │   ├── openai/
 │   │   ├── schema.ts         Zod schema for review output
-│   │   ├── prompt.ts         system prompt and diff formatter
-│   │   └── review.ts         call OpenAI with structured output
+│   │   ├── prompt.ts         system prompts and diff formatter
+│   │   ├── review.ts         call the model with structured output
+│   │   ├── verify.ts         static refutation-first verification gate
+│   │   └── verify-tools.ts   agentic tool-using verification gate
 │   └── webhook/
 │       ├── verify.ts         HMAC SHA-256 with constant time compare
 │       └── handler.ts        dispatch by event and run review pipeline
