@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Finding } from '@/openai/schema';
-import { formatFinding } from '@/webhook/handler';
+import type { Finding, WalkthroughItem } from '@/openai/schema';
+import { formatFinding, formatWalkthroughSection } from '@/webhook/handler';
 
 function finding(over: Partial<Finding> = {}): Finding {
   return {
@@ -59,5 +59,38 @@ describe('formatFinding suggestion block', () => {
     );
     expect(out).toContain('Use &lt;b&gt; guard');
     expect(out).toContain('```suggestion\nif (x != null) {\n```');
+  });
+});
+
+describe('formatWalkthroughSection', () => {
+  function wt(over: Partial<WalkthroughItem>[]): WalkthroughItem[] {
+    return over.map((o) => ({ area: 'src/x.ts', change: 'does a thing', ...o }));
+  }
+
+  it('returns an empty string for no items', () => {
+    expect(formatWalkthroughSection([])).toBe('');
+  });
+
+  it('renders a Markdown table with a header and a row per item', () => {
+    const out = formatWalkthroughSection(wt([{ area: 'src/a.ts', change: 'adds a guard' }]));
+    expect(out).toContain('**Walkthrough**');
+    expect(out).toContain('| Area | Change |');
+    expect(out).toContain('| src/a.ts | adds a guard |');
+  });
+
+  it('escapes the column separator so a cell cannot add a column', () => {
+    const out = formatWalkthroughSection(wt([{ area: 'a|b', change: 'x | y' }]));
+    expect(out).toContain('| a\\|b | x \\| y |');
+  });
+
+  it('collapses newlines so a cell cannot break the row', () => {
+    const out = formatWalkthroughSection(wt([{ change: 'line one\nline two' }]));
+    expect(out).toContain('line one line two');
+    expect(out).not.toContain('line one\nline two');
+  });
+
+  it('HTML-escapes and neutralizes link brackets in cells', () => {
+    const out = formatWalkthroughSection(wt([{ change: 'see <b> and [click](evil)' }]));
+    expect(out).toContain('see &lt;b&gt; and \\[click\\](evil)');
   });
 });

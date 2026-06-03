@@ -126,7 +126,8 @@ pr_review/
 │   │   ├── prompt.ts         system prompts and diff formatter
 │   │   ├── review.ts         call the model with structured output
 │   │   ├── verify.ts         static refutation-first verification gate
-│   │   └── verify-tools.ts   agentic tool-using verification gate
+│   │   ├── verify-tools.ts   agentic tool-using verification gate
+│   │   └── walkthrough.ts    high-level PR walkthrough generator
 │   └── webhook/
 │       ├── verify.ts         HMAC SHA-256 with constant time compare
 │       └── handler.ts        dispatch by event and run review pipeline

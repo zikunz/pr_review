@@ -106,6 +106,20 @@ const EnvSchema = z.object({
   // loop indefinitely against the gateway. The verifier fails open if it has not
   // submitted a verdict within this many turns.
   VERIFY_TOOLS_MAX_ITERS: z.coerce.number().int().positive().max(20).default(8),
+  // v0.2 PR walkthrough. When WALKTHROUGH_ENABLED, a dedicated call summarizes
+  // the change as a high-level table at the top of the review body, separate
+  // from the line-level findings. Off by default since it adds one model call
+  // per review. WALKTHROUGH_MODEL defaults to the cheap deployed model.
+  WALKTHROUGH_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  WALKTHROUGH_MODEL: z
+    .string()
+    .default('gpt-5.4-mini')
+    .refine((m) => KNOWN_MODELS.includes(normalizeModel(m)), {
+      message: `WALKTHROUGH_MODEL must resolve (after stripping any provider/ prefix) to one of: ${KNOWN_MODELS.join(', ')}`,
+    }),
   // v0.2 cascade routing. Off by default (CASCADE_ENABLED=false) so the bot
   // continues to use OPENAI_MODEL for every review until an operator opts in.
   // When enabled, the tier is chosen from the diff signals (see

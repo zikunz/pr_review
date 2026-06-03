@@ -16,9 +16,10 @@ import { IdempotencyStore } from '@/lib/idempotency';
 import { trace } from '@/lib/trace';
 import { longestBacktickRun } from '@/openai/prompt';
 import { callReview } from '@/openai/review';
-import type { Finding } from '@/openai/schema';
+import type { Finding, WalkthroughItem } from '@/openai/schema';
 import { verifyFindings } from '@/openai/verify';
 import { githubFetcher, verifyFindingsWithTools } from '@/openai/verify-tools';
+import { generateWalkthrough } from '@/openai/walkthrough';
 
 type FileWithPatch = PullRequestFile & { patch: string };
 
@@ -404,11 +405,26 @@ async function runReview(ctx: ReviewContext): Promise<void> {
       body: formatFinding(f),
     }));
 
+    // v0.2 PR walkthrough (opt-in via WALKTHROUGH_ENABLED). A dedicated call
+    // summarizes the change as a table at the top of the review body. Advisory,
+    // so a failure returns an empty list and the review posts without it.
+    const walkthrough = env.WALKTHROUGH_ENABLED
+      ? await generateWalkthrough(
+          {
+            prTitle: pr.title,
+            prBody: pr.body,
+            files: filesWithPatch.map((f) => ({ filename: f.filename, patch: f.patch })),
+          },
+          env.WALKTHROUGH_MODEL,
+        )
+      : [];
+
     const body = formatReviewBody(
       result.review.summary,
       result.review.findings.length,
       validFindings.length,
       filesResult.truncated,
+      walkthrough,
     );
 
     // `event: 'COMMENT'` is hard-coded by design. The model still emits
@@ -499,11 +515,34 @@ export function formatFinding(f: Finding): string {
   return parts.join('\n');
 }
 
+// A walkthrough cell carries model-controlled text derived from untrusted PR
+// content, rendered inside a Markdown table. Collapse newlines so a cell cannot
+// break the row, escape the column separator, and apply the same HTML and
+// link-bracket escaping the summary and findings use.
+function escapeTableCell(s: string): string {
+  return s
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\|/g, '\\|')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .trim();
+}
+
+export function formatWalkthroughSection(items: WalkthroughItem[]): string {
+  if (items.length === 0) return '';
+  const rows = items.map((i) => `| ${escapeTableCell(i.area)} | ${escapeTableCell(i.change)} |`);
+  return ['**Walkthrough**', '', '| Area | Change |', '|---|---|', ...rows].join('\n');
+}
+
 function formatReviewBody(
   summary: string,
   total: number,
   posted: number,
   filesTruncated: boolean,
+  walkthrough: WalkthroughItem[] = [],
 ): string {
   // The model controls `summary` the same way it controls each finding's
   // message, so apply the same escape chain `formatFinding` uses. Without
@@ -518,6 +557,10 @@ function formatReviewBody(
     .replace(/\]/g, '\\]');
   const dropped = total - posted;
   const lines = [safeSummary];
+  const walkthroughSection = formatWalkthroughSection(walkthrough);
+  if (walkthroughSection) {
+    lines.push('', walkthroughSection);
+  }
   if (dropped > 0) {
     lines.push('');
     const suffix = dropped === 1 ? '' : 's';

@@ -10,7 +10,7 @@
 
 ## Overview
 
-PR Cascade is a GitHub App that listens for pull request events and posts a structured code review with inline comments on each finding, including a one-click fix as a GitHub `suggestion` block when the fix is an obvious single-line change. It uses an OpenAI-compatible API for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
+PR Cascade is a GitHub App that listens for pull request events and posts a structured code review: inline comments on each finding, a one-click fix as a GitHub `suggestion` block when the fix is an obvious single-line change, and, when enabled, a high-level walkthrough table summarizing the change. It uses an OpenAI-compatible API for inference, validates that every proposed finding references a line that exists in the diff, and enforces a per-review cost cap. Triggers cover the `pull_request` events `opened`, `synchronize`, and `reopened`, plus an `@<bot-name>` mention by a repository owner, member, or collaborator for manual re-runs. Comments from outside contributors are ignored so a public repo cannot be cost-amplified by drive-by mentions.
 
 **See it in action:** [the bot reviewing a demo pull request](https://github.com/zikunz/pr_review/pull/15), where it flags a planted SQL injection as a critical finding at 0.99 confidence and a missing-parameter crash as a warning.
 
