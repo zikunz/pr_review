@@ -19,6 +19,7 @@
 | Confidence calibration, all 83 findings | mean confidence 0.80 vs actual accuracy 0.036; ECE 0.76, Brier 0.63; the 13 findings at 0.95+ were all wrong |
 | Agentic (tool-using) gate over mini's 26 findings | read real source on all 26 (190 reads), dropped 25 vs the static panel's 24, refuting one false positive the static gate kept; it still dropped the vague real-bug detection |
 | Agentic gate across three vendors | gpt-5.5, Opus 4.8, and Gemini 3.1 Pro each read real source on all 26 findings and dropped 24 to 25, keeping the same one finding; the agentic gain is not OpenAI-specific |
+| One-click fix suggestions, 8 planted bugs | the bot offered a fix on 7 of 8 (a correct abstention on the 8th) and 6 of the 7 fixes are correct; one over-eager wrong suggestion on a multi-line fix |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -282,6 +283,22 @@ The cross-vendor reading mirrors Experiment 6. The static gate held across vendo
 
 ---
 
+## Experiment 13: Do the one-click fix suggestions fix the bug?
+
+The bot attaches a one-click GitHub suggestion to a finding when the fix is an obvious single-line change. This experiment runs the deployed model over the 8 planted-bug fixtures, each a diff with one known bug and a known fix, and hand-scores each suggestion against the planted bug. The per-suggestion verdicts are in [`eval/suggestion-scores.md`](../eval/suggestion-scores.md).
+
+| Measure | Result |
+|---|---|
+| Planted bugs the bot offered a fix for | 7 of 8 |
+| Suggestions that correctly fix the bug | 6 of 7 |
+| Correct abstentions, no single-line fix | 1 of 8 (path traversal) |
+
+The deployed model produced a correct one-click fix for 6 of the 8 planted bugs: the parameterized query for SQL injection, execFile for command injection, the loop bound, the comparison operator, the environment-variable read for the hardcoded secret, and the secure random source. On the path-traversal bug it correctly offered no suggestion, because the fix is not a single line. The one wrong suggestion was on the swallowed-error bug, where the model offered a single-line change that does not stop the empty catch from swallowing, and the real fix spans more than one line, so it should have abstained as it did on path traversal. One of the six correct fixes uses require(), which is right in intent but would not compile in an ES module.
+
+So the one-click fix is usually correct, and the model abstains when the fix does not fit a single line, but the feature has a real failure mode where it over-suggests on a bug whose fix is multi-line. The conservative reading is that a suggestion is an accelerator the reviewer still confirms, not an auto-apply.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -342,6 +359,9 @@ npx tsx eval/verify-tools-eval.ts                  # needs gh auth to read repo 
 # Cross-vendor agentic verification (Experiment 12): same loop, non-OpenAI verifiers
 TOOLS_EVAL_MODEL=google/gemini-3.1-pro-preview npx tsx eval/verify-tools-eval.ts
 TOOLS_EVAL_MODEL=anthropic/claude-opus-4.8 npx tsx eval/verify-tools-eval.ts
+
+# Suggestion quality (Experiment 13): one-click fixes over the 8 planted bugs
+npx tsx eval/suggestion-eval.ts
 
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs
