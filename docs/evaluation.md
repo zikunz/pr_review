@@ -17,6 +17,7 @@
 | Per-finding precision audit, all 83 findings | 1 clear true positive, roughly 80 false positives; every finding at confidence 0.95+ was wrong |
 | Verification gate over all 83 findings | dropped 67 of 79 false positives (85%); kept the real bug (2 of its 3 detections) |
 | Confidence calibration, all 83 findings | mean confidence 0.80 vs actual accuracy 0.036; ECE 0.76, Brier 0.63; the 13 findings at 0.95+ were all wrong |
+| Agentic (tool-using) gate over mini's 26 findings | read real source on all 26 (190 reads), dropped 25 vs the static panel's 24, refuting one false positive the static gate kept; it still dropped the vague real-bug detection |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -246,6 +247,24 @@ This is the precision result restated as a calibration failure. The confidence n
 
 ---
 
+## Experiment 11: Does a tool-using verifier beat the static gate?
+
+The static gate (Experiment 3) and full-file grounding (Experiment 4) both judge a finding without reading the wider codebase, and Experiment 6 left one false positive standing because its refutation lived outside the diff. This experiment runs the shipping agentic verifier (`src/openai/verify-tools.ts`, the gate behind `VERIFY_TOOLS_ENABLED`) over the same 26 findings the deployed model posted. The verifier can call `find_files` and `read_file` to inspect the real repository at each pull request head commit before it decides, so it can look up the definition a finding depends on instead of judging from the description. The loop, tools, and refutation-first rule are the production code. Only the model call and the file fetcher are supplied by the harness. The verifier was gpt-5.5 with up to eight tool-calling turns per finding.
+
+| Measure | Static gate (Experiment 3 panel) | Agentic gate (gpt-5.5 with tools) |
+|---|---|---|
+| Findings dropped (of 26) | 24 | 25 |
+| Findings where it read real source | 0 | 26 |
+| Tool calls made | 0 | 190 (about 7 per finding) |
+
+The agentic verifier read real source on every one of the 26 findings, 190 reads in total. It dropped 25, comparable to the two-model static panel's 24. The one finding it dropped that the static panel had kept is a FastAPI false positive about non-translated documentation assets, and reading the staging script confirmed the concern did not hold, a refutation the diff alone did not support. So giving the verifier the real code did let it refute a false positive the static gate left standing.
+
+It is not a clean win. The agentic gate kept one finding as real that the per-finding audit (Experiment 8) scored a false positive, a claimed Windows path-separator mismatch in the same FastAPI script, after reading the two functions involved. Whether that is a latent cross-platform bug or a harm never realized is itself a borderline call, which is why that pull request supplied the audit's borderline findings. And on the one real bug, the React control-flow defect, the agentic verifier read the actual flush control flow and still scored the deployed model's vaguely worded detection (confidence 0.73) a false positive, exactly as the static gate did. Reading the real code does not rescue a finding whose description is too vague to confirm.
+
+The honest reading is that for diff-anchored findings on merged pull requests, the false positives were largely refutable from the diff already, so the agentic gate mostly confirms the static gate's verdicts with better-grounded reasons (it read the real `isURLSameOrigin` helper, the real flight-server internals) rather than overturning them. The gain is a refutation grounded in the actual code and one fewer surviving false positive, at a real cost of about seven model turns and eight cents per finding against one turn for the static gate. The full run cost $2.05 at OpenRouter prices. One pull request, axios #10901, no longer resolves on the GitHub API, so its single finding was judged from the diff alone.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -265,6 +284,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
 - **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of critical-severity findings rather than a verified false-positive rate.
 - **Cross-file recall.** Experiment 5 uses five planted fixtures, not real bugs, scored by the author against the known planted bug, on one model (gpt-5.4-mini) at three runs per condition. It demonstrates the direction (cross-file context helps recall when the contract is read) rather than a precise rate, and a real cross-file bug dataset would be needed to measure recall in the wild.
+- **Agentic verification.** Experiment 11 ran a single tool-using verifier (gpt-5.5) on one stochastic run, and it is compared against the two-model static panel rather than a single static gpt-5.5, so the one-finding edge is directional rather than a precise gain. The reads the verifier made were not separately audited for correctness, and one pull request (axios #10901) no longer resolves on the GitHub API, so its finding was judged from the diff alone.
 
 ---
 
@@ -298,6 +318,9 @@ npx tsx eval/crossfile-recall-eval.ts
 # Cross-vendor verification: re-run the gate with a non-OpenAI verifier
 npx tsx eval/crossvendor-verify.ts                                        # Gemini (default)
 CV_VERIFIERS=anthropic/claude-opus-4.8 npx tsx eval/crossvendor-verify.ts  # Opus
+
+# Agentic verification: the shipping tool-using verifier over mini's 26 findings
+npx tsx eval/verify-tools-eval.ts                  # needs gh auth to read repo files
 
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs
