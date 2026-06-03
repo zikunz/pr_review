@@ -86,7 +86,10 @@ Every finding at confidence 0.95 or above was a false positive: mini's 0.98
 the merged passing test) and 0.95 (Spring `RabbitProperties.Stream.Ssl`, a class
 that does not exist, verified by the author against the merged source). The
 clear true positive carried confidences of 0.73 to 0.90. High model confidence
-did not track correctness on this set.
+did not track correctness on this set. Experiment 10 quantifies this over all 83
+findings: mean self-reported confidence 0.80 against an actual accuracy of 0.036,
+an Expected Calibration Error of 0.76, and a Brier score of 0.63, where 0 is
+perfect (`eval/calibration.ts`, result in `eval/eval-calibration.json`).
 
 ## Notes for re-verification
 

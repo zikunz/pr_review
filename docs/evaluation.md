@@ -16,6 +16,7 @@
 | Multi-agent review (planner, reviewer, critic) on gpt-5.5 | 9 findings vs 6 for single-pass, recall 8/8 preserved; more thorough, not more precise |
 | Per-finding precision audit, all 83 findings | 1 clear true positive, roughly 80 false positives; every finding at confidence 0.95+ was wrong |
 | Verification gate over all 83 findings | dropped 67 of 79 false positives (85%); kept the real bug (2 of its 3 detections) |
+| Confidence calibration, all 83 findings | mean confidence 0.80 vs actual accuracy 0.036; ECE 0.76, Brier 0.63; the 13 findings at 0.95+ were all wrong |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -225,6 +226,24 @@ The result is honest about two limits. The gate kept 12 false positives, so it i
 
 ---
 
+## Experiment 10: Is the model's confidence calibrated?
+
+Every finding carries a self-reported confidence, and Experiment 8 gives a hand label for each. This experiment measures how well the confidence tracks correctness, the standard way a probabilistic classifier is judged. A finding counts as correct when it is a genuine, worth-posting issue (a true positive). The script is `eval/calibration.ts` and the result is `eval/eval-calibration.json`.
+
+| Self-reported confidence | Findings | Mean confidence | Actual accuracy |
+|---|---|---|---|
+| 0.95 to 1.00 | 13 | 0.965 | 0.000 |
+| 0.90 to 0.95 | 8 | 0.910 | 0.125 |
+| 0.80 to 0.90 | 22 | 0.844 | 0.045 |
+| 0.70 to 0.80 | 22 | 0.756 | 0.045 |
+| below 0.70 | 18 | 0.631 | 0.000 |
+
+The model's mean self-reported confidence is 0.80. Its actual accuracy is 0.036. That is an overconfidence gap of 0.76, an Expected Calibration Error of 0.76, and a Brier score of 0.63, where 0 is perfect. The 13 findings the model was most sure about, at 0.95 and above, were wrong every time. Accuracy did not rise with confidence. It stayed near zero across the whole range.
+
+This is the precision result restated as a calibration failure. The confidence number carries almost no information about whether a finding is real, so a downstream tool cannot threshold on confidence to filter noise. Re-judging each finding against the diff is the alternative, and Experiment 9 measured the gate removing 85 percent of the false positives. Counting the two borderline findings as correct does not change the picture (accuracy 0.048, Expected Calibration Error 0.75).
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -284,6 +303,9 @@ MA_MODE=recall npx tsx eval/multiagent-review.ts   # recall arm over the planted
 
 # Gate against the full hand-scored set: run the production verifier over all 83 findings
 npx tsx eval/gate-full-audit.ts
+
+# Confidence calibration: reliability table, ECE, and Brier from the hand labels (no model calls)
+npx tsx eval/calibration.ts
 ```
 
 Per-finding precision verdicts (Experiment 8) are recorded in [`eval/finding-scores.md`](./finding-scores.md).

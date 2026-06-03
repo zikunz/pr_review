@@ -1,0 +1,106 @@
+{
+  "strict": {
+    "findings": 83,
+    "meanConfidence": 0.8,
+    "accuracy": 0.036,
+    "overconfidenceGap": 0.763,
+    "ece": 0.763,
+    "brier": 0.631,
+    "reliability": [
+      {
+        "bin": "[0, 0.6)",
+        "count": 4,
+        "meanConfidence": 0.568,
+        "accuracy": 0,
+        "truePositives": 0
+      },
+      {
+        "bin": "[0.6, 0.7)",
+        "count": 14,
+        "meanConfidence": 0.649,
+        "accuracy": 0,
+        "truePositives": 0
+      },
+      {
+        "bin": "[0.7, 0.8)",
+        "count": 22,
+        "meanConfidence": 0.756,
+        "accuracy": 0.045,
+        "truePositives": 1
+      },
+      {
+        "bin": "[0.8, 0.9)",
+        "count": 22,
+        "meanConfidence": 0.844,
+        "accuracy": 0.045,
+        "truePositives": 1
+      },
+      {
+        "bin": "[0.9, 0.95)",
+        "count": 8,
+        "meanConfidence": 0.91,
+        "accuracy": 0.125,
+        "truePositives": 1
+      },
+      {
+        "bin": "[0.95, 1.0001)",
+        "count": 13,
+        "meanConfidence": 0.965,
+        "accuracy": 0,
+        "truePositives": 0
+      }
+    ]
+  },
+  "lenient": {
+    "findings": 83,
+    "meanConfidence": 0.8,
+    "accuracy": 0.048,
+    "overconfidenceGap": 0.751,
+    "ece": 0.751,
+    "brier": 0.624,
+    "reliability": [
+      {
+        "bin": "[0, 0.6)",
+        "count": 4,
+        "meanConfidence": 0.568,
+        "accuracy": 0,
+        "truePositives": 0
+      },
+      {
+        "bin": "[0.6, 0.7)",
+        "count": 14,
+        "meanConfidence": 0.649,
+        "accuracy": 0,
+        "truePositives": 0
+      },
+      {
+        "bin": "[0.7, 0.8)",
+        "count": 22,
+        "meanConfidence": 0.756,
+        "accuracy": 0.091,
+        "truePositives": 2
+      },
+      {
+        "bin": "[0.8, 0.9)",
+        "count": 22,
+        "meanConfidence": 0.844,
+        "accuracy": 0.045,
+        "truePositives": 1
+      },
+      {
+        "bin": "[0.9, 0.95)",
+        "count": 8,
+        "meanConfidence": 0.91,
+        "accuracy": 0.125,
+        "truePositives": 1
+      },
+      {
+        "bin": "[0.95, 1.0001)",
+        "count": 13,
+        "meanConfidence": 0.965,
+        "accuracy": 0,
+        "truePositives": 0
+      }
+    ]
+  }
+}

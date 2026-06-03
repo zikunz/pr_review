@@ -41,7 +41,7 @@ Most automated code review tools treat the model as a black box and ship a singl
 
 Three ideas drive the design.
 
-1. Verifiability over confidence. Every finding the bot posts has been checked against the unified diff that GitHub returned for the PR, so the bot cannot fabricate a comment about an untouched line. The model also reports its own confidence on every finding. Calibrating that self-reported number against ground truth is the v0.3 work.
+1. Verifiability over confidence. Every finding the bot posts has been checked against the unified diff that GitHub returned for the PR, so the bot cannot fabricate a comment about an untouched line. The model also reports its own confidence on every finding. Calibrating that self-reported number against ground truth is Experiment 10, which finds it badly overconfident (Expected Calibration Error 0.76, with the most confident findings wrong every time), so the bot relies on the verification gate rather than the confidence number to filter noise.
 2. Cost discipline. Successful calls write a token and cost ledger to the local trace file. Failures that occur after the LLM call has already been billed are logged as `review.failed` with the error and duration, but without the cost figure. A `review.cost_settled` pre-post event is a v0.2 candidate. A per-review cost cap suppresses the posted review when the call exceeded its budget, leaving an audit trail so a runaway PR cannot also flood the comments. Pre-flight cost estimation is the other v0.2 candidate. The planned v0.2 cascade keeps routine reviews on a small model and escalates to a frontier model only when sensors fail or routing confidence is low.
 3. Transparency. Prompts, schemas, and trace data formats are open so anyone can reproduce or critique the approach.
 
@@ -101,7 +101,7 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 
 ## Evaluation
 
-[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs nine experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
+[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs ten experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios.
 
 1. **Cross-model noise panel.** The same 22 PRs through five models. The deployed model (gpt-5.4-mini) posted 26 findings, nearly all false positives including three confident criticals that were wrong. gpt-5.5 and gpt-5.3-codex posted 6 and 5 on the same code.
 2. **Recall test.** Eight diffs with one planted, diff-evident bug each. All three OpenAI models caught 8/8.
@@ -112,6 +112,7 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 7. **Multi-agent review.** A planner, reviewer, and critic pipeline on gpt-5.5 posted 9 findings on the 22 PRs versus 6 for single-pass, while preserving 8/8 planted-bug recall. The collaboration made the review more thorough rather than more precise, the opposite direction from the verification gate.
 8. **Per-finding precision audit.** Every finding the six configurations posted (83 in total) was hand-scored against the code. There was one clear true positive, surfaced by three configurations, and roughly 80 false positives. Every finding at confidence 0.95 or above was wrong, which confirms that precision, not recall, is the bottleneck and that model confidence does not track correctness.
 9. **Gate against ground truth.** Running the production verification gate over all 83 findings, measured against the hand-scored labels, dropped 85% of the false positives across every configuration while preserving the one real bug. A refutation-first gate is a precision filter that works on any base model's output, which is the result the audit asks for.
+10. **Confidence calibration.** Scoring the self-reported confidence against the hand labels gives an Expected Calibration Error of 0.76 and a Brier score of 0.63, against 0 for a perfect predictor. Mean confidence was 0.80 while actual accuracy was 0.036, and the 13 findings at 0.95 confidence or above were wrong every time. The confidence number carries almost no signal about whether a finding is real, so a tool cannot filter noise by thresholding on it, which is why the verification gate re-judges each finding against the diff instead.
 
 Across experiments 4 and 5 the bottleneck is consistently the model's *use* of context, not its availability, which is why context-grounding and the verification gate are complementary rather than competing.
 
