@@ -18,6 +18,7 @@
 | Verification gate over all 83 findings | dropped 67 of 79 false positives (85%); kept the real bug (2 of its 3 detections) |
 | Confidence calibration, all 83 findings | mean confidence 0.80 vs actual accuracy 0.036; ECE 0.76, Brier 0.63; the 13 findings at 0.95+ were all wrong |
 | Agentic (tool-using) gate over mini's 26 findings | read real source on all 26 (190 reads), dropped 25 vs the static panel's 24, refuting one false positive the static gate kept; it still dropped the vague real-bug detection |
+| Agentic gate across three vendors | gpt-5.5, Opus 4.8, and Gemini 3.1 Pro each read real source on all 26 findings and dropped 24 to 25, keeping the same one finding; the agentic gain is not OpenAI-specific |
 
 The deployed model (gpt-5.4-mini) has 100% recall on planted, diff-evident bugs and high noise on accepted code. gpt-5.5 and gpt-5.3-codex had the same recall and posted far fewer findings on the same PRs. Over mini's 26 findings on this dataset, a refutation-first verification gate removed 24 while preserving all 8 planted-bug catches.
 
@@ -265,6 +266,22 @@ The honest reading is that for diff-anchored findings on merged pull requests, t
 
 ---
 
+## Experiment 12: Is the agentic gain vendor-specific?
+
+Experiment 11 ran the agentic gate with gpt-5.5. This experiment re-runs the same loop and tools with two non-OpenAI verifiers, Gemini 3.1 Pro and Claude Opus 4.8, over the same 26 findings. It is the agentic parallel to Experiment 6, which checked the static gate across vendors. Only the verifier model changes.
+
+| Verifier | Dropped (of 26) | Read real source on | Tool calls | Finding kept |
+|---|---|---|---|---|
+| gpt-5.5 (Experiment 11) | 25 | 26 | 190 | docs.py:188 |
+| Claude Opus 4.8 | 25 | 26 | 91 | docs.py:188 |
+| Gemini 3.1 Pro | 24 | 26 | 133 | docs.py:188 |
+
+Every verifier, across three vendors, called the tools and read real source on all 26 findings. The agentic behavior is therefore not specific to the OpenAI model. Given tools, each frontier verifier investigated the real code rather than judging from the diff alone. All three independently kept the same single finding as real, the FastAPI Windows path-separator claim at docs.py:188 (confidence 0.84), which strengthens the read that it is a genuine borderline rather than a clear false positive. Opus matched gpt-5.5 exactly, dropping 25 and refuting from the staging script the FastAPI false positive the static gate had kept. Gemini dropped 24, one fewer, because it read the code on that disputed finding but did not return a verdict within the tool budget, so it failed open and kept the finding rather than refuting it.
+
+The cross-vendor reading mirrors Experiment 6. The static gate held across vendors at 23 to 25 of 26, and the agentic gate holds too, at 24 to 25 of 26 dropped with the same survivor across all three. The agentic gate is a vendor-independent precision filter rather than a behavior of one model family. The full cross-vendor runs cost $3.25 for Opus and $2.50 for Gemini at OpenRouter prices.
+
+---
+
 ## Conclusion
 
 Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
@@ -284,7 +301,7 @@ Adding full-file context did not substitute for the gate. The most confident fal
 - **Labeling.** Labels are the author's judgments against the code, with no second coder.
 - **Grounding comparison.** Experiment 4 used a single full run per condition, and grounding is non-deterministic, so the robustness check covers only the flagship PR (re-run four times). The new criticals that appeared under grounding were not individually labeled, so the no-reduction result is a count of critical-severity findings rather than a verified false-positive rate.
 - **Cross-file recall.** Experiment 5 uses five planted fixtures, not real bugs, scored by the author against the known planted bug, on one model (gpt-5.4-mini) at three runs per condition. It demonstrates the direction (cross-file context helps recall when the contract is read) rather than a precise rate, and a real cross-file bug dataset would be needed to measure recall in the wild.
-- **Agentic verification.** Experiment 11 ran a single tool-using verifier (gpt-5.5) on one stochastic run, and it is compared against the two-model static panel rather than a single static gpt-5.5, so the one-finding edge is directional rather than a precise gain. The reads the verifier made were not separately audited for correctness, and one pull request (axios #10901) no longer resolves on the GitHub API, so its finding was judged from the diff alone.
+- **Agentic verification.** Experiment 11 ran a single tool-using verifier (gpt-5.5) on one stochastic run, and it is compared against the two-model static panel rather than a single static gpt-5.5, so the one-finding edge is directional rather than a precise gain. The reads the verifier made were not separately audited for correctness, and one pull request (axios #10901) no longer resolves on the GitHub API, so its finding was judged from the diff alone. Experiment 12 repeats the agentic gate across vendors, but each verifier is still one stochastic run, and all three kept the same finding the per-finding audit scored a false positive, which could be three independent confirmations that it is real or a shared blind spot.
 
 ---
 
@@ -321,6 +338,10 @@ CV_VERIFIERS=anthropic/claude-opus-4.8 npx tsx eval/crossvendor-verify.ts  # Opu
 
 # Agentic verification: the shipping tool-using verifier over mini's 26 findings
 npx tsx eval/verify-tools-eval.ts                  # needs gh auth to read repo files
+
+# Cross-vendor agentic verification (Experiment 12): same loop, non-OpenAI verifiers
+TOOLS_EVAL_MODEL=google/gemini-3.1-pro-preview npx tsx eval/verify-tools-eval.ts
+TOOLS_EVAL_MODEL=anthropic/claude-opus-4.8 npx tsx eval/verify-tools-eval.ts
 
 # Multi-agent review: planner -> reviewer -> critic on a strong base, vs single-pass
 npx tsx eval/multiagent-review.ts                  # precision arm over the 22 PRs

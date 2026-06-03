@@ -112,6 +112,23 @@ function gh(args: string[]): string {
   return execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 }
 
+// Prices for verifier models the production pricing table does not carry, USD
+// per million tokens, so the spend guard works for cross-vendor runs too.
+// Mirrors eval/crossvendor-verify.ts.
+const LOCAL_PRICE: Record<string, { in: number; out: number }> = {
+  'google/gemini-3.1-pro-preview': { in: 2, out: 12 },
+  'anthropic/claude-opus-4.8': { in: 5, out: 25 },
+};
+
+function costCents(inTok: number, outTok: number, cachedTok: number): number {
+  try {
+    return estimateCost(MODEL, inTok, outTok, cachedTok).totalCents;
+  } catch {
+    const p = LOCAL_PRICE[MODEL];
+    return p ? ((inTok * p.in + outTok * p.out) / 1e6) * 100 : 0;
+  }
+}
+
 const shaCache = new Map<number, string>();
 function headSha(repo: string, pr: number): string {
   if (!shaCache.has(pr)) {
@@ -274,16 +291,7 @@ async function main(): Promise<void> {
     usage.inputTokens += u.inputTokens;
     usage.outputTokens += u.outputTokens;
     usage.cachedInputTokens += u.cachedInputTokens;
-    try {
-      spentCents = estimateCost(
-        MODEL,
-        usage.inputTokens,
-        usage.outputTokens,
-        usage.cachedInputTokens,
-      ).totalCents;
-    } catch {
-      // unpriced model; spend guard stays at 0
-    }
+    spentCents = costCents(usage.inputTokens, usage.outputTokens, usage.cachedInputTokens);
 
     const key = `${f.pr}:${f.file}:${f.line}`;
     const killedByStatic = staticFP.get(key);
