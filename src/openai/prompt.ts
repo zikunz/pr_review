@@ -99,7 +99,7 @@ function clipForPrompt(text: string, max: number): string {
 // as defects. The system prompt frames them as untrusted. A reassuring claim
 // ("safe", "already tested") must not lower the model's scrutiny. This balances
 // the value of intent context against confirmation-bias framing risk (see
-// "Measuring and Exploiting Confirmation Bias in LLM-Assisted Security Code
+// "Measuring and Exploiting Contextual Bias in LLM-Assisted Security Code
 // Review", arXiv:2603.18740). For untrusted or external contributions,
 // withholding the description entirely is a stronger mitigation and is tracked
 // as a v0.2 candidate.
