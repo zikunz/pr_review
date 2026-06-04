@@ -67,7 +67,7 @@ Each model received the same 22 PRs through the bot's exact review path. The pro
 
 The `google/gemini-3.1-pro-preview` model failed on 2 of 22 PRs with truncated or incomplete output, one of which hit the output-length limit. The `anthropic/claude-opus-4.8` model returned the same provider-routing 404 on all 22 PRs and produced no results. Experiment 6 isolates the cause. The same model completed all 26 calls with the smaller verifier `json_schema`, while the larger review-output schema failed on every attempt, so the strict review-output schema is the obstacle rather than the model being unavailable. The noise comparison is therefore based on the three gpt-5.x models, which all ran on the full set without errors.
 
-Mini's 26 findings included three critical findings at confidence 0.96–0.98, all false positives. One (0.98, axios PR) claimed a config-merge helper passed a boolean presence check rather than the actual value to a URL builder, breaking query-string serialization. Reading the code confirmed the helper returns the value. A second (0.96, Spring PR) flagged a nested-property dereference as a null-pointer risk, but the Spring property holder is always initialized, so the removed null check was redundant. The third (0.98, React PR) correctly saw that two exports were dropped from an internal, experimental React package, but over-weighted that expected churn as a critical breaking change.
+Mini's 26 findings included three critical findings at confidence 0.96 to 0.98, all false positives. One (0.98, axios PR) claimed a config-merge helper passed a boolean presence check rather than the actual value to a URL builder, breaking query-string serialization. Reading the code confirmed the helper returns the value. A second (0.96, Spring PR) flagged a nested-property dereference as a null-pointer risk, but the Spring property holder is always initialized, so the removed null check was redundant. The third (0.98, React PR) correctly saw that two exports were dropped from an internal, experimental React package, but over-weighted that expected churn as a critical breaking change.
 
 ---
 
@@ -298,7 +298,7 @@ The bot attaches a one-click GitHub suggestion to a finding when the fix is an o
 
 The deployed model produced a correct one-click fix for 6 of the 8 planted bugs: the parameterized query for SQL injection, execFile for command injection, the loop bound, the comparison operator, the environment-variable read for the hardcoded secret, and the secure random source. On the path-traversal bug it correctly offered no suggestion, because the fix is not a single line. The one wrong suggestion was on the swallowed-error bug, where the model offered a single-line change that does not stop the empty catch from swallowing, and the real fix spans more than one line, so it should have abstained as it did on path traversal. One of the six correct fixes uses require(), which is right in intent but would not compile in an ES module.
 
-So the one-click fix is usually correct, and the model abstains when the fix does not fit a single line, but the feature has a real failure mode where it over-suggests on a bug whose fix is multi-line. The conservative reading is that a suggestion is an accelerator the reviewer still confirms, not an auto-apply. A separate real-GitHub check (`eval/suggestion-apply-check.ts`) confirmed all 9 suggestions are applyable, each accepted and anchored to its line on a scratch pull request that the check then cleans up.
+So the one-click fix is usually correct, and the model abstains when the fix does not fit a single line, but the feature has a real failure mode where it over-suggests on a bug whose fix is multi-line. The conservative reading is that a suggestion is an accelerator the reviewer still confirms, not an auto-apply. A separate real-GitHub check (`eval/suggestion-apply-check.ts`) confirmed all 9 suggestions are applyable, each accepted and anchored to its line on a scratch pull request that the check then cleans up. The count is 9 rather than 7 because two of those seven fixtures each produced two suggestion-bearing findings.
 
 ---
 
@@ -344,7 +344,7 @@ The model tags each finding critical, warning, or info. If that label carried si
 | warning | 58/61 = 95% | 65/75 = 87% |
 | info | 10/11 = 91% | 11/11 = 100% |
 
-The 200-PR column counts the 98 findings the run recorded with per-finding severity. Its first 109 pull requests stored aggregate counts only, as [`eval/largescale-scores.md`](../eval/largescale-scores.md) notes, so the severity split is drawn from the remaining findings, while the 90% headline rate in Experiment 15 uses the per-PR counts that are uniform across all 200.
+The 200-PR column counts the 98 findings the run recorded with per-finding severity. Of the 200 PRs, 131 stored aggregate counts only and 69 also recorded per-finding verdicts, as [`eval/largescale-scores.md`](../eval/largescale-scores.md) notes, so the severity split is drawn from those 98 findings, while the 90% headline rate in Experiment 15 uses the per-PR counts that are present for all 200.
 
 The severity label does not track correctness. Every one of the 23 findings the bot marked critical, across both the hand-labeled set and the 200-PR run, was a false positive. The findings it marked info, the lowest severity, were no worse and slightly better. So a reviewer who triaged by the bot's severity would be steered toward exactly the findings least likely to be real. This is the calibration result of Experiment 10 in a second signal. Like the confidence number, the severity label carries no information about whether a finding is real, and at the top level it is actively misleading. It is one more reason the bot needs an external verification gate rather than its own self-reported priority.
 
@@ -352,7 +352,7 @@ The severity label does not track correctness. Every one of the 23 findings the 
 
 ## Conclusion
 
-Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5–6 on the same PRs.
+Recall was not the differentiator. All three models caught every planted, diff-evident bug. The difference was precision on accepted code. Mini posted 26 findings on merged PRs, nearly all of them false positives, including three confident criticals that should not have been posted. gpt-5.5 and gpt-5.3-codex posted 5 to 6 on the same PRs.
 
 A refutation-first verification gate addresses this asymmetry. It removes findings the diff does not support and keeps findings the diff confirms. Run over mini's output, it removed 24 of the 26 findings while preserving every planted-bug catch, at the cost of two verifier calls per finding that reaches the gate. Cross-vendor verifiers reached the same verdicts on 23 to 25 of the 26 findings, so the effect does not depend on the verifier sharing the base model's vendor.
 

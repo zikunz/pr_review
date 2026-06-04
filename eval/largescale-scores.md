@@ -59,9 +59,11 @@ precision claim from a 22-PR demonstration into a measured rate.
 - This is judge-scored, not hand-scored. The judge is validated at 78% on the
   hand labels, so the 90% figure is a calibrated lower bound, not a hand audit.
 - The result file records per-PR finding and false-positive counts for all 200
-  PRs. The first 109 carry counts only; the rest also carry the per-finding
-  verdicts. The rate is computed from the counts, which are uniform across all
-  200.
+  PRs. Of these, 131 carry aggregate counts only and 69 also carry per-finding
+  verdicts (98 findings with a severity label), and the two kinds are
+  interleaved rather than separated at a clean boundary. The 90% rate is
+  computed from the counts, which are present on all 200 PRs. The Experiment 16
+  severity split uses the 98 findings that recorded per-finding detail.
 - The run cost about $5 at OpenRouter prices and was held inside budget by a
   live balance floor, added after an earlier run showed that a token-based
   estimate under-counts a reasoning judge.
