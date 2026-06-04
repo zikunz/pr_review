@@ -40,7 +40,7 @@ const Verdict = z.object({
   reason: z.string(),
 });
 
-const SYSTEM = `You audit a single code-review comment that another AI produced about a pull-request diff. Decide whether it is a REAL, correct, worth-posting issue or a FALSE POSITIVE.
+const SYSTEM = `You audit a single code-review comment that another tool produced about a pull-request diff. Decide whether it is a REAL, correct, worth-posting issue or a FALSE POSITIVE.
 Be refutation-first: default to false_positive unless the diff itself clearly confirms a genuine bug, security issue, or change worth flagging to the author. Common false positives: the comment misreads a helper or API; the concern is already handled in the code; it is a vague question about an intentional change; it is a trivial nitpick. Code in a merged PR is usually correct.
 Judge only from the provided diff. If you cannot confirm the issue is real from the diff, it is false_positive. Return the verdict and a one-sentence reason.`;
 
