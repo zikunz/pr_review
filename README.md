@@ -16,9 +16,24 @@ PR Cascade is a GitHub App that listens for pull request events and posts a stru
 
 Detailed product spec lives in [ROADMAP.md](./ROADMAP.md). An offline evaluation of review quality is in [docs/evaluation.md](./docs/evaluation.md).
 
-That evaluation produced a clear headline finding. Across 22 real merged pull requests, the cheap deployed model is noisy (26 findings, nearly all false positives) while stronger models stay quiet on the same code, yet every OpenAI model tested catches 100% of planted, diff-evident bugs. So for code review the differentiator is precision, not recall. A refutation-first verification gate built on that insight removes 24 of those 26 noisy findings while preserving every planted-bug catch.
+That evaluation produced one clear result. For review of already-accepted code the bottleneck is precision, not recall, and the bot's own confidence and severity signals do not track which findings are real. Each number below is checked against the raw result files in [`eval/`](./eval).
 
-## Architecture (v0.1)
+**Key results**
+
+- **Noise at scale.** Across 200 real merged pull requests from 19 major repositories and 6 languages, a separate judge model, first validated against 83 hand-scored findings, scored about 90% of the deployed model's findings false positives (208 of 232, 95% confidence interval 85 to 93%, a calibrated lower bound). [Experiment 15](./docs/evaluation.md#experiment-15-how-noisy-is-the-bot-at-scale)
+- **Recall was never the bottleneck.** Every model tested caught 8 of 8 planted, diff-evident bugs. [Experiment 2](./docs/evaluation.md#experiment-2-recall-test)
+- **Confidence is anti-calibrated.** Mean self-reported confidence was 0.80 against an actual accuracy of 0.036, for an Expected Calibration Error of 0.76, and all 13 findings at 0.95 confidence or above were wrong. [Experiment 10](./docs/evaluation.md#experiment-10-is-the-models-confidence-calibrated)
+- **The severity label is inverted.** All 23 findings the bot marked critical were false positives, so a reviewer who triaged by its top severity would be steered toward the findings least likely to be real. [Experiment 16](./docs/evaluation.md#experiment-16-does-the-bots-severity-label-track-correctness)
+- **The verification gate is the fix.** Over the full hand-scored set a refutation-first gate dropped 67 of 79 false positives (85%) across six model configurations while preserving the one real bug, and on the deployed model it removed 24 of 26 noisy findings while keeping 8 of 8 planted-bug catches. [Experiment 9](./docs/evaluation.md#experiment-9-the-gate-against-the-full-hand-scored-set)
+
+## Architecture
+
+![PR Cascade review pipeline. A GitHub pull request event reaches the webhook, which verifies the HMAC SHA-256 signature in constant time and de-dupes on the delivery id, returns 202 Accepted, then asynchronously fetches the unified diff, calls the model for a structured review, drops any finding not anchored to a changed line, optionally runs the verification gate and cascade routing behind environment flags, and posts inline comments with one-click suggestions and an optional walkthrough.](./docs/architecture.svg)
+
+The solid stages ship on by default in v0.1. The diff-anchor gate is the always-on precision mechanism that stops the bot from commenting on a line the PR did not touch. The verification gate and cascade routing are built and ship behind `VERIFY_ENABLED` and `CASCADE_ENABLED`.
+
+<details>
+<summary>Text version of the v0.1 default path</summary>
 
 ```text
 GitHub PR event
@@ -36,6 +51,8 @@ Return 202 Accepted, then async pipeline
    post a Review with inline comments via the line+side API
    append duration, outcome, and cost (on success) to stdout and a local trace file
 ```
+
+</details>
 
 ## Why this exists
 

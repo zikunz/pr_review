@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 800" font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+<defs>
+<marker id="arr" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+<path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/>
+</marker>
+</defs>
+<rect x="0" y="0" width="760" height="800" fill="#ffffff" stroke="#e2e8f0"/>
+<text x="380" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#1e293b">PR Cascade review pipeline</text>
+<text x="380" y="55" text-anchor="middle" font-size="11" fill="#64748b">Solid stages are on by default in v0.1. Dashed stages are built and ship behind an environment flag.</text>
+
+<rect x="130" y="78" width="500" height="56" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.3"/>
+<text x="380" y="102" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">GitHub pull request event</text>
+<text x="380" y="120" text-anchor="middle" font-size="10.5" fill="#475569">opened, synchronize, reopened, or an authorized @mention</text>
+<line x1="380" y1="134" x2="380" y2="162" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="164" width="500" height="56" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.3"/>
+<text x="380" y="188" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">POST /github/webhook</text>
+<text x="380" y="206" text-anchor="middle" font-size="10.5" fill="#475569">verify HMAC SHA-256 in constant time, de-dupe on X-GitHub-Delivery</text>
+<line x1="380" y1="220" x2="380" y2="248" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="250" width="500" height="56" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.3"/>
+<text x="380" y="274" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">202 Accepted, then async pipeline</text>
+<text x="380" y="292" text-anchor="middle" font-size="10.5" fill="#475569">fetch PR head, changed files, and the unified diff</text>
+<line x1="380" y1="306" x2="380" y2="334" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="336" width="500" height="56" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.3"/>
+<text x="380" y="360" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">Model review</text>
+<text x="380" y="378" text-anchor="middle" font-size="10.5" fill="#475569">one OpenAI-compatible call with a strict Zod json_schema output</text>
+<line x1="380" y1="392" x2="380" y2="420" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="422" width="500" height="56" rx="8" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.8"/>
+<text x="380" y="446" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1d4ed8">Diff-anchor gate, always on</text>
+<text x="380" y="464" text-anchor="middle" font-size="10.5" fill="#1e3a8a">drop any finding that does not sit on a changed line</text>
+<line x1="380" y1="478" x2="380" y2="506" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="508" width="500" height="56" rx="8" fill="#f8fafc" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="380" y="532" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">Verification gate, VERIFY_ENABLED</text>
+<text x="380" y="550" text-anchor="middle" font-size="10.5" fill="#475569">a refutation-first second model drops unconfirmed findings</text>
+<line x1="380" y1="564" x2="380" y2="592" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="594" width="500" height="56" rx="8" fill="#f8fafc" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="380" y="618" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">Cascade routing, CASCADE_ENABLED</text>
+<text x="380" y="636" text-anchor="middle" font-size="10.5" fill="#475569">escalate to a stronger model when sensors fail or confidence is low</text>
+<line x1="380" y1="650" x2="380" y2="678" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<rect x="130" y="680" width="500" height="56" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.3"/>
+<text x="380" y="704" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e293b">Post the review</text>
+<text x="380" y="722" text-anchor="middle" font-size="10.5" fill="#475569">inline comments by line and side, one-click suggestions, optional walkthrough</text>
+
+<text x="380" y="768" text-anchor="middle" font-size="10.5" fill="#64748b">A per-review cost cap and a JSON Lines trace of duration, outcome, and cost wrap every run.</text>
+</svg>

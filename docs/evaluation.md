@@ -344,6 +344,8 @@ The model tags each finding critical, warning, or info. If that label carried si
 | warning | 58/61 = 95% | 65/75 = 87% |
 | info | 10/11 = 91% | 11/11 = 100% |
 
+The 200-PR column counts the 98 findings the run recorded with per-finding severity. Its first 109 pull requests stored aggregate counts only, as [`eval/largescale-scores.md`](../eval/largescale-scores.md) notes, so the severity split is drawn from the remaining findings, while the 90% headline rate in Experiment 15 uses the per-PR counts that are uniform across all 200.
+
 The severity label does not track correctness. Every one of the 23 findings the bot marked critical, across both the hand-labeled set and the 200-PR run, was a false positive. The findings it marked info, the lowest severity, were no worse and slightly better. So a reviewer who triaged by the bot's severity would be steered toward exactly the findings least likely to be real. This is the calibration result of Experiment 10 in a second signal. Like the confidence number, the severity label carries no information about whether a finding is real, and at the top level it is actively misleading. It is one more reason the bot needs an external verification gate rather than its own self-reported priority.
 
 ---
