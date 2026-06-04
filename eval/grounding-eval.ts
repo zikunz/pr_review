@@ -163,7 +163,7 @@ async function main(): Promise<void> {
       );
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
-      console.log(`${pr.repo}#${pr.pr}: review failed — ${reason}`);
+      console.log(`${pr.repo}#${pr.pr}: review failed: ${reason}`);
       lines.push(JSON.stringify({ repo: pr.repo, pr: pr.pr, error: reason }));
     }
   }

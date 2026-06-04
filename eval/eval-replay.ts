@@ -123,7 +123,7 @@ function select(): void {
         files: codeFiles.map((f) => ({ filename: f.filename, patch: f.patch })),
       });
       console.log(
-        `  PR #${pull.number}  ${codeFiles.length} files  ${totalPatch} chars  — ${pull.title.slice(0, 60)}`,
+        `  PR #${pull.number}  ${codeFiles.length} files  ${totalPatch} chars  - ${pull.title.slice(0, 60)}`,
       );
       kept++;
     }

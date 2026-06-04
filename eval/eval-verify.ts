@@ -98,7 +98,7 @@ function prFiles(): Map<number, Array<{ filename: string; patch: string }>> {
 }
 
 async function verify(model: string, f: Finding, patch: string) {
-  const user = `PR: ${f.repo} #${f.pr} — ${f.title}
+  const user = `PR: ${f.repo} #${f.pr} - ${f.title}
 Finding to audit: [${f.severity} | ${f.category}] on ${f.file}:${f.line}
 "${f.message}"
 

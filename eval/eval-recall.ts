@@ -72,7 +72,7 @@ async function review(model: string, fx: (typeof FIXTURES)[number]) {
 async function main() {
   const results = [];
   for (const fx of FIXTURES) {
-    console.log(`\n### ${fx.id} — planted bug: ${fx.bug}`);
+    console.log(`\n### ${fx.id} - planted bug: ${fx.bug}`);
     const byModel: Record<string, unknown> = {};
     for (const m of MODELS) {
       const r = await review(m, fx);

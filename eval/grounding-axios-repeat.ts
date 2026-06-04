@@ -139,7 +139,7 @@ async function main(): Promise<void> {
   console.log(`Run 1 (earlier full experiment): FP present at 0.98`);
   console.log(`This batch: FP recurred in ${fpRecurred}/${RUNS} grounded runs`);
   console.log(
-    `Total: FP present in ${fpRecurred + 1}/${RUNS + 1} grounded runs — full-file context did NOT prevent the confident false positive.`,
+    `Total: FP present in ${fpRecurred + 1}/${RUNS + 1} grounded runs. Full-file context did NOT prevent the confident false positive.`,
   );
 }
 

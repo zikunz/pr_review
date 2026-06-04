@@ -44,7 +44,7 @@ const FIXTURES: Fixture[] = [
   {
     id: 'wrong-arg-count',
     title: 'Charge the customer on checkout',
-    bug: 'charge() is defined as charge(userId, amountCents) in fileB, but fileA calls charge(order.totalCents) — the amount is passed as the userId and amountCents is undefined.',
+    bug: 'charge() is defined as charge(userId, amountCents) in fileB, but fileA calls charge(order.totalCents), so the amount is passed as the userId and amountCents is undefined.',
     fileA: {
       filename: 'src/checkout.ts',
       patch: [
@@ -96,7 +96,7 @@ const FIXTURES: Fixture[] = [
   {
     id: 'missing-export',
     title: 'Parse the start date in the report',
-    bug: 'fileA imports { parseDate } from ./dateutil, but dateutil only exports formatDate — parseDate is undefined and the call crashes at runtime.',
+    bug: 'fileA imports { parseDate } from ./dateutil, but dateutil only exports formatDate, so parseDate is undefined and the call crashes at runtime.',
     fileA: {
       filename: 'src/report.ts',
       patch: [
