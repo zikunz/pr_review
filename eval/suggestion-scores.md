@@ -26,7 +26,7 @@ suggestions are in `eval/eval-suggestions.jsonl`.
 Of the 8 planted bugs, the bot offered a one-click fix on 7 and correctly
 offered none on 1, the path-traversal bug, whose fix is not a single line. Of
 the 7 suggestions, 6 fix the bug and 1, the swallowed-error bug, does not. That
-last one is an over-eager suggestion: the model proposed a single-line change on
+last one is an over-eager suggestion. The model proposed a single-line change on
 a bug whose fix spans more than the one line a suggestion can replace, where it
 should have abstained as it did on path traversal. One of the 6 correct fixes,
 the weak-random-token one, uses `require()`, which is correct in intent but would
@@ -45,7 +45,8 @@ real, applyable GitHub suggestions and not just well-formed strings,
 `eval/suggestion-apply-check.ts` reconstructs the fixture files, opens a scratch
 pull request containing them, posts each suggestion as a GitHub suggestion
 comment on its line, and checks that GitHub accepts and anchors it, which is the
-precondition for the one-click apply affordance. All 9 suggestions were accepted
-and anchored to the correct file and line. The script closes the pull request and
-deletes the branch when it finishes.
+precondition for the one-click apply affordance. All 9 suggestion blocks were
+accepted and anchored to the correct file and line. The count is 9 rather than 7
+because two of the seven fixed fixtures each produced two suggestion blocks. The
+script closes the pull request and deletes the branch when it finishes.
 

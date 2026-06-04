@@ -120,7 +120,7 @@ Set `VERIFY_ENABLED=true` to route every finding that passes diff-anchor validat
 
 ## Evaluation
 
-[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs sixteen experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios, 8 planted-bug fixtures, and a 200-PR large-scale benchmark across 19 repositories. The sharpest single result is Experiment 10, the confidence calibration shown below: the models report high confidence on findings that are almost never real.
+[docs/evaluation.md](./docs/evaluation.md) reports an offline evaluation built on the bot's exact review path. It runs sixteen experiments anchored on a frozen set of 22 real merged pull requests from React, FastAPI, Spring Boot, and Axios, 8 planted-bug fixtures, and a 200-PR large-scale benchmark across 19 repositories. The sharpest single result is Experiment 10, the confidence calibration shown below. The models report high confidence on findings that are almost never real.
 
 ![Reliability diagram of the deployed models' confidence over the 83 hand-scored findings. Model self-reported confidence is on the x-axis and the actual fraction of real findings on the y-axis. A calibrated model would follow the dashed diagonal, but observed accuracy stays near zero across the whole range, and the gap to the diagonal is widest at the highest confidence.](./docs/reliability.svg)
 

@@ -57,7 +57,11 @@ precision claim from a 22-PR demonstration into a measured rate.
 ## Honesty notes
 
 - This is judge-scored, not hand-scored. The judge is validated at 78% on the
-  hand labels, so the 90% figure is a calibrated lower bound, not a hand audit.
+  hand labels (the validateJudge pass in eval/largescale-eval.ts, run once over
+  the 83 hand findings), so the 90% figure is a calibrated lower bound, not a
+  hand audit. That validation prints its agreement to the console and is
+  reported here rather than written to a committed file, so re-deriving the 78%
+  means re-running the judge.
 - The result file records per-PR finding and false-positive counts for all 200
   PRs. Of these, 131 carry aggregate counts only and 69 also carry per-finding
   verdicts (98 findings with a severity label), and the two kinds are

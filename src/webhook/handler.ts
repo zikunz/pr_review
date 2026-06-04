@@ -537,7 +537,7 @@ export function formatWalkthroughSection(items: WalkthroughItem[]): string {
   return ['**Walkthrough**', '', '| Area | Change |', '|---|---|', ...rows].join('\n');
 }
 
-function formatReviewBody(
+export function formatReviewBody(
   summary: string,
   total: number,
   posted: number,

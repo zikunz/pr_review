@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding, WalkthroughItem } from '@/openai/schema';
-import { formatFinding, formatWalkthroughSection } from '@/webhook/handler';
+import { formatFinding, formatReviewBody, formatWalkthroughSection } from '@/webhook/handler';
 
 function finding(over: Partial<Finding> = {}): Finding {
   return {
@@ -14,6 +14,47 @@ function finding(over: Partial<Finding> = {}): Finding {
     ...over,
   };
 }
+
+describe('formatReviewBody', () => {
+  it('HTML-escapes the summary so injected markup cannot render', () => {
+    const out = formatReviewBody('Danger <img src=x> & co', 1, 1, false);
+    expect(out).toContain('Danger &lt;img src=x&gt; &amp; co');
+  });
+
+  it('neutralizes Markdown link brackets in the summary', () => {
+    const out = formatReviewBody('see [click](http://evil)', 1, 1, false);
+    expect(out).not.toContain('[click]');
+    expect(out).toContain('click');
+  });
+
+  it('discloses diff-anchor drops with plural wording', () => {
+    const out = formatReviewBody('summary', 5, 3, false);
+    expect(out).toContain('_Dropped 2 findings that referenced lines outside this PR diff._');
+  });
+
+  it('uses the singular for a single dropped finding', () => {
+    const out = formatReviewBody('summary', 5, 4, false);
+    expect(out).toContain('_Dropped 1 finding that referenced lines outside this PR diff._');
+    expect(out).not.toContain('1 findings');
+  });
+
+  it('adds no drop notice when every finding was posted', () => {
+    expect(formatReviewBody('summary', 3, 3, false)).not.toContain('Dropped');
+  });
+
+  it('discloses file truncation with a thousands separator', () => {
+    const out = formatReviewBody('summary', 1, 1, true);
+    expect(out).toContain('the first 3,000 changed files');
+  });
+
+  it('includes the walkthrough table when items are provided', () => {
+    const out = formatReviewBody('summary', 1, 1, false, [
+      { area: 'src/a.ts', change: 'adds a guard' },
+    ]);
+    expect(out).toContain('**Walkthrough**');
+    expect(out).toContain('| src/a.ts | adds a guard |');
+  });
+});
 
 describe('formatFinding suggestion block', () => {
   it('renders no suggestion block when suggestion is null', () => {

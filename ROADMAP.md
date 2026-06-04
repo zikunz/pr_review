@@ -133,7 +133,7 @@ The frontier piece. Tool-based verification with calibrated confidence.
 
 This is what differentiates the project from commercial bots, and the clearest frontier component of the system in 2026.
 
-Shipped early, behind a flag. Two verification gates are implemented in the review path, both off by default. The first is a static refutation-first gate (`VERIFY_ENABLED`): every finding that passes diff-anchor validation is audited by a second model and dropped only when the verifier panel unanimously refutes it from the diff. The second is the agentic, tool-using gate (`VERIFY_TOOLS_ENABLED`), the frontier piece named above: a single verifier that can call `read_file` and `find_files` to inspect the real repository at the PR head commit before deciding, rather than judging from the diff alone. It targets the evaluation's central finding, that the bottleneck is whether the model uses the surrounding code, not whether it has it. Offline evaluations validated both before they were wired in (see [docs/evaluation.md](./docs/evaluation.md)). The AST and calibrated-confidence capabilities below remain the deeper v0.3 work.
+Shipped early, behind a flag. Two verification gates are implemented in the review path, both off by default. The first is a static refutation-first gate (`VERIFY_ENABLED`). Every finding that passes diff-anchor validation is audited by a second model and dropped only when the verifier panel unanimously refutes it from the diff. The second is the agentic, tool-using gate (`VERIFY_TOOLS_ENABLED`), the frontier piece named above. It is a single verifier that can call `read_file` and `find_files` to inspect the real repository at the PR head commit before deciding, rather than judging from the diff alone. It targets the evaluation's central finding, that the bottleneck is whether the model uses the surrounding code, not whether it has it. Offline evaluations validated both before they were wired in (see [docs/evaluation.md](./docs/evaluation.md)). The AST and calibrated-confidence capabilities below remain the deeper v0.3 work.
 
 New capabilities.
 
@@ -234,7 +234,7 @@ Honest classification of project components.
 | Agentic tool use across four tools | Frontier-ish (in OSS) | No public OSS code review bot surveyed for this project publishes a four-tool agentic implementation. |
 | Tool-based verification with calibrated confidence | Frontier | No commercial bot surveyed for this project publishes a tool-based verification layer over LLM findings. This is the differentiator. |
 | Auto-detect persona from repo signals | Frontier-ish | Unimplemented in commercial bots |
-| Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major AI safety teams |
+| Adversarial robustness study (v0.5) | Frontier (research adjacent) | Active research topic at major model-safety and alignment labs |
 
 Summary, with concrete numbers added after v0.3 ships measured data. PR Cascade aims to be a production-grade code review agent. The v0.3 release adds tool-based verification and targets a measured false-positive reduction against the v0.1 baseline.
 
