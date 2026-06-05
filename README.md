@@ -167,6 +167,13 @@ This project was built with heavy use of AI tooling, which the course encourages
 - **Runtime inference.** The bot itself calls OpenAI `gpt-5.x` models for code review, routed through OpenRouter, configured via the `OPENAI_*`, `CASCADE_*`, and `VERIFY_*` environment variables. This is the product's runtime dependency, separate from the development tooling above.
 - **Author ownership.** The choice of problem, the evaluation design, the interpretation of the results, and every decision about what to ship were the author's, and all reported numbers were verified against source data before publication.
 
+## Acknowledgements and citations
+
+- **Evaluation dataset.** The offline evaluation replays real merged pull requests from public open-source projects as frozen review inputs, each cited by URL in the data under [`eval/`](./eval). The 22-PR set is drawn from [React](https://github.com/facebook/react), [FastAPI](https://github.com/fastapi/fastapi), [Spring Boot](https://github.com/spring-projects/spring-boot), and [Axios](https://github.com/axios/axios). The 200-PR large-scale benchmark spans 19 projects across 6 languages, adding Angular, Vue, Svelte, Vite, TypeScript, Django, pandas, scikit-learn, Gin, Ruff, and Deno among others.
+- **Cited work.** The system prompt rule that judges the diff independently of any reassuring claim in the PR description is motivated by "Measuring and Exploiting Contextual Bias in LLM-Assisted Security Code Review" ([arXiv:2603.18740](https://arxiv.org/abs/2603.18740)).
+- **Built on.** [Hono](https://hono.dev), the [OpenAI Node SDK](https://github.com/openai/openai-node), [jose](https://github.com/panva/jose), and [Zod](https://zod.dev), checked with [Biome](https://biomejs.dev) and [Vitest](https://vitest.dev), deployed on [Railway](https://railway.app), and routed through [OpenRouter](https://openrouter.ai).
+- **AI tooling.** How AI tools were used is disclosed in the [AI tools disclosure](#ai-tools-disclosure) section above.
+
 ## Security
 
 See [SECURITY.md](./SECURITY.md) for the vulnerability disclosure process and the maintainer practices that apply to this repository.
